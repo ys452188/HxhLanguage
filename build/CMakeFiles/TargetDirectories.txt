@@ -1,0 +1,4 @@
+/storage/emulated/0/qeditor/CPPProject/默认目录/HxHLanguage/build/CMakeFiles/hxc.dir
+/storage/emulated/0/qeditor/CPPProject/默认目录/HxHLanguage/build/CMakeFiles/hxvm.dir
+/storage/emulated/0/qeditor/CPPProject/默认目录/HxHLanguage/build/CMakeFiles/edit_cache.dir
+/storage/emulated/0/qeditor/CPPProject/默认目录/HxHLanguage/build/CMakeFiles/rebuild_cache.dir

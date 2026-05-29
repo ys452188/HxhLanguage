@@ -139,7 +139,7 @@ typedef struct Symbol {
 
 inline static int interpretInstruction(Instruction& inst, OpStack& opStack, char*& stack, int& usedStackSize, ObjectCode& obj,
                                        int& instIndex, int& frameTop, HxVector<CallFrame>& frames);
-int interpret(ObjectCode& obj, int& err) noexcept {
+int interpret(ObjectCode& obj, int& ret, int& err) noexcept {
 #ifdef HX_DEBUG
     wprintf(LOG_LABEL L"开始解释\n");
 #endif
@@ -161,6 +161,11 @@ int interpret(ObjectCode& obj, int& err) noexcept {
                                  frames[(frameTop)].stack, frames[(frameTop)].dataPtr, obj, frames[(frameTop)].instIndex,
                                  frameTop, frames))
             return -1;
+    }
+    
+    if(opStack.top -1 < OP_STACK_SIZE && opStack.top -1 >= 0) {
+        ret = (int)*((int32_t*)opStack.opStack[opStack.top -1].value);
+        wprintf(INFO_LABEL L"主函数返回：%d\n", ret);
     }
 
     return 0;

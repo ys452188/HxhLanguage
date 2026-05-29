@@ -1,5 +1,7 @@
+#########CMake语法好难看啊啊啊啊啊##########
+
 cmake_minimum_required(VERSION 3.5)
-project(HxLanguage VERSION 0.114)
+project(HxLanguage VERSION 0.114 LANGUAGES CXX)
 
 ########配置文件
 set(CONFIG_FILE "${CMAKE_CURRENT_SOURCE_DIR}/config.txt")
@@ -28,12 +30,15 @@ endif()
 
 if(HX_DEBUG STREQUAL "ON")
     set(HX_DEBUG_MACRO 1) 
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        add_compile_options(-fsanitize=address)
+        add_compile_options(-g)
+    endif()    
 else()
     unset(HX_DEBUG_MACRO) 
 endif()
 
 if(LANG STREQUAL "zh_TW")
-    set(LANG_zh_TW_MACRO ON)
     set(LANG_zh_TW_MACRO 1)
 else()
     unset(LANG_zh_TW_MACRO) 
@@ -56,12 +61,11 @@ else()
 endif()
 
 add_compile_options(-O3)
-
 add_executable(hxc src/HXC/Main.cpp) 
 
 add_compile_options(-flto -fno-exceptions)
-
 add_executable(hxvm src/HXVM/Main.cpp)
+
 if(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
     # 强制增加 TLS 对齐
     set_target_properties(hxvm PROPERTIES COMPILE_FLAGS "-ftls-model=global-dynamic")
@@ -71,7 +75,6 @@ endif()
 if(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
     # 强制使用全局动态 TLS 模型
     target_compile_options(hxvm PRIVATE "-ftls-model=global-dynamic")
-    
     #链接器不过于激进地压缩段
     target_link_options(hxvm PRIVATE "-Wl,-z,common-page-size=65536" "-Wl,-z,max-page-size=65536")
 endif()

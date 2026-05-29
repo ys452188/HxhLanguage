@@ -1,6 +1,6 @@
 #include "config.h"
 #define HXC_VERSION 0.114f
-// #define HX_DEBUG
+//#define HX_DEBUG
 bool isInDebugMode = true;
 #include <errno.h>
 #include <stdio.h>

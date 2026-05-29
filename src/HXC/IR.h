@@ -74,7 +74,7 @@ IR_Program* generateIR(Tokens* tokens, int* err) {
                     free(program);
                     return NULL;
                 }
-                int index = isFunctionRepeatDefine(func, program->functions, program->function_count);
+                int index = isFunctionRepeatDefine(func, program->functions);
                 if (index == -255) {
                     // 函数重复定义错误已处理
                     freeIRProgram(&program);
@@ -82,16 +82,7 @@ IR_Program* generateIR(Tokens* tokens, int* err) {
                     return NULL;
                 } else if (index == -1) {
                     // 函数未声明，继续添加
-                    program->function_count++;
-                    program->functions =
-                        (IR_Function**)realloc(program->functions, program->function_count * sizeof(IR_Function*));
-                    if (!program->functions) {
-                        if (err) *err = -1;
-                        free(func);
-                        free(program);
-                        return NULL;
-                    }
-                    program->functions[program->function_count - 1] = func;
+                    program->functions.push_back(func);
                 } else {
                     // 函数已声明，进行定义
                     if (program->functions[index]->name) free(program->functions[index]->name);
@@ -203,8 +194,8 @@ void freeIRProgram(IR_Program** program) {
     if (!program || !*program) return;
     if (*program) {
         // 释放程序中的所有函数
-        if ((*program)->functions) {
-            for (int i = 0; i < (*program)->function_count; i++) {
+        if ((*program)->functions.size()!=0) {
+            for (int i = 0; i < (*program)->functions.size(); i++) {
                 IR_Function* func = (*program)->functions[i];
                 if (func) {
                     if (func->name) {
@@ -229,8 +220,6 @@ void freeIRProgram(IR_Program** program) {
                     func = NULL;
                 }
             }
-            free((*program)->functions);
-            (*program)->functions = NULL;
         }
         // 释放程序中的所有类
         if ((*program)->classes) {
@@ -1504,114 +1493,114 @@ void showFunctionInfo(IR_Function* function) {
     if (function->isReturnTypeKnown) {
         fwprintf(logStream, L"返回类型: ");
         switch (function->returnType.kind) {
-            case IR_DT_INT:
-                fwprintf(logStream, L"int\n");
-                break;
-            case IR_DT_FLOAT:
-                fwprintf(logStream, L"float\n");
-                break;
-            case IR_DT_STRING:
-                fwprintf(logStream, L"string\n");
-                break;
-            case IR_DT_CHAR:
-                fwprintf(logStream, L"char\n");
-                break;
-            case IR_DT_BOOL:
-                fwprintf(logStream, L"bool\n");
-                break;
-            case IR_DT_VOID:
-                fwprintf(logStream, L"void\n");
-                break;
-            case IR_DT_CUSTOM:
-                fwprintf(logStream, L"custom(%ls)\n", function->returnType.customTypeName);
-                break;
-            case IR_DT_INT_ARR:
-                fwprintf(logStream, L"int array\n");
-                break;
-            case IR_DT_FLOAT_ARR:
-                fwprintf(logStream, L"float array\n");
-                break;
-            case IR_DT_STRING_ARR:
-                fwprintf(logStream, L"string array\n");
-                break;
-            case IR_DT_CHAR_ARR:
-                fwprintf(logStream, L"char array\n");
-                break;
-            case IR_DT_BOOL_ARR:
-                fwprintf(logStream, L"bool array\n");
-                break;
-            case IR_DT_INT_REFER:
-                fwprintf(logStream, L"int reference\n");
-                break;
-            case IR_DT_FLOAT_REFER:
-                fwprintf(logStream, L"float reference\n");
-                break;
-            case IR_DT_STRING_REFER:
-                fwprintf(logStream, L"string reference\n");
-                break;
-            case IR_DT_CHAR_REFER:
-                fwprintf(logStream, L"char reference\n");
-                break;
-            case IR_DT_BOOL_REFER:
-                fwprintf(logStream, L"bool reference\n");
-                break;
+        case IR_DT_INT:
+            fwprintf(logStream, L"int\n");
+            break;
+        case IR_DT_FLOAT:
+            fwprintf(logStream, L"float\n");
+            break;
+        case IR_DT_STRING:
+            fwprintf(logStream, L"string\n");
+            break;
+        case IR_DT_CHAR:
+            fwprintf(logStream, L"char\n");
+            break;
+        case IR_DT_BOOL:
+            fwprintf(logStream, L"bool\n");
+            break;
+        case IR_DT_VOID:
+            fwprintf(logStream, L"void\n");
+            break;
+        case IR_DT_CUSTOM:
+            fwprintf(logStream, L"custom(%ls)\n", function->returnType.customTypeName);
+            break;
+        case IR_DT_INT_ARR:
+            fwprintf(logStream, L"int array\n");
+            break;
+        case IR_DT_FLOAT_ARR:
+            fwprintf(logStream, L"float array\n");
+            break;
+        case IR_DT_STRING_ARR:
+            fwprintf(logStream, L"string array\n");
+            break;
+        case IR_DT_CHAR_ARR:
+            fwprintf(logStream, L"char array\n");
+            break;
+        case IR_DT_BOOL_ARR:
+            fwprintf(logStream, L"bool array\n");
+            break;
+        case IR_DT_INT_REFER:
+            fwprintf(logStream, L"int reference\n");
+            break;
+        case IR_DT_FLOAT_REFER:
+            fwprintf(logStream, L"float reference\n");
+            break;
+        case IR_DT_STRING_REFER:
+            fwprintf(logStream, L"string reference\n");
+            break;
+        case IR_DT_CHAR_REFER:
+            fwprintf(logStream, L"char reference\n");
+            break;
+        case IR_DT_BOOL_REFER:
+            fwprintf(logStream, L"bool reference\n");
+            break;
         }
     }
     fwprintf(logStream, L"参数个数: %d\n", function->paramCount);
     for (int i = 0; i < function->paramCount; i++) {
         fwprintf(logStream, L"\t参数%d: 名字=%ls, 类型=", i + 1, function->params[i].name);
         switch (function->params[i].type.kind) {
-            case IR_DT_INT:
-                fwprintf(logStream, L"int\n");
-                break;
-            case IR_DT_FLOAT:
-                fwprintf(logStream, L"float\n");
-                break;
-            case IR_DT_STRING:
-                fwprintf(logStream, L"string\n");
-                break;
-            case IR_DT_CHAR:
-                fwprintf(logStream, L"char\n");
-                break;
-            case IR_DT_BOOL:
-                fwprintf(logStream, L"bool\n");
-                break;
-            case IR_DT_VOID:
-                fwprintf(logStream, L"void\n");
-                break;
-            case IR_DT_CUSTOM:
-                fwprintf(logStream, L"custom(%ls)\n", function->returnType.customTypeName);
-                break;
-            case IR_DT_INT_ARR:
-                fwprintf(logStream, L"int array\n");
-                break;
-            case IR_DT_FLOAT_ARR:
-                fwprintf(logStream, L"float array\n");
-                break;
-            case IR_DT_STRING_ARR:
-                fwprintf(logStream, L"string array\n");
-                break;
-            case IR_DT_CHAR_ARR:
-                fwprintf(logStream, L"char array\n");
-                break;
-            case IR_DT_BOOL_ARR:
-                fwprintf(logStream, L"bool array\n");
-                break;
-            case IR_DT_INT_REFER:
-                fwprintf(logStream, L"int reference\n");
-                break;
-            case IR_DT_FLOAT_REFER:
-                fwprintf(logStream, L"float reference\n");
-                break;
-            case IR_DT_STRING_REFER:
-                fwprintf(logStream, L"string reference\n");
-                break;
-            case IR_DT_CHAR_REFER:
-                fwprintf(logStream, L"char reference\n");
-                break;
-            case IR_DT_BOOL_REFER:
-                fwprintf(logStream, L"bool reference\n");
-                break;
+        case IR_DT_INT:
+            fwprintf(logStream, L"int\n");
+            break;
+        case IR_DT_FLOAT:
+            fwprintf(logStream, L"float\n");
+            break;
+        case IR_DT_STRING:
+            fwprintf(logStream, L"string\n");
+            break;
+        case IR_DT_CHAR:
+            fwprintf(logStream, L"char\n");
+            break;
+        case IR_DT_BOOL:
+            fwprintf(logStream, L"bool\n");
+            break;
+        case IR_DT_VOID:
+            fwprintf(logStream, L"void\n");
+            break;
+        case IR_DT_CUSTOM:
+            fwprintf(logStream, L"custom(%ls)\n", function->returnType.customTypeName);
+            break;
+        case IR_DT_INT_ARR:
+            fwprintf(logStream, L"int array\n");
+            break;
+        case IR_DT_FLOAT_ARR:
+            fwprintf(logStream, L"float array\n");
+            break;
+        case IR_DT_STRING_ARR:
+            fwprintf(logStream, L"string array\n");
+            break;
+        case IR_DT_CHAR_ARR:
+            fwprintf(logStream, L"char array\n");
+            break;
+        case IR_DT_BOOL_ARR:
+            fwprintf(logStream, L"bool array\n");
+            break;
+        case IR_DT_INT_REFER:
+            fwprintf(logStream, L"int reference\n");
+            break;
+        case IR_DT_FLOAT_REFER:
+            fwprintf(logStream, L"float reference\n");
+            break;
+        case IR_DT_STRING_REFER:
+            fwprintf(logStream, L"string reference\n");
+            break;
+        case IR_DT_CHAR_REFER:
+            fwprintf(logStream, L"char reference\n");
+            break;
+        case IR_DT_BOOL_REFER:
+            fwprintf(logStream, L"bool reference\n");
+            break;
         }
     }
 }
@@ -1627,27 +1616,27 @@ void showIRClassInfo(IR_Class* cls) {
         if (member->type == IR_CM_VARIABLE) {
             fwprintf(logStream, L"\t\t变量: 名字=%ls, 类型=", member->data.variable->name);
             switch (member->data.variable->type.kind) {
-                case IR_DT_INT:
-                    fwprintf(logStream, L"int\n");
-                    break;
-                case IR_DT_FLOAT:
-                    fwprintf(logStream, L"float\n");
-                    break;
-                case IR_DT_STRING:
-                    fwprintf(logStream, L"string\n");
-                    break;
-                case IR_DT_CHAR:
-                    fwprintf(logStream, L"char\n");
-                    break;
-                case IR_DT_BOOL:
-                    fwprintf(logStream, L"bool\n");
-                    break;
-                case IR_DT_VOID:
-                    fwprintf(logStream, L"void\n");
-                    break;
-                case IR_DT_CUSTOM:
-                    fwprintf(logStream, L"custom(%ls)\n", member->data.variable->type.customTypeName);
-                    break;
+            case IR_DT_INT:
+                fwprintf(logStream, L"int\n");
+                break;
+            case IR_DT_FLOAT:
+                fwprintf(logStream, L"float\n");
+                break;
+            case IR_DT_STRING:
+                fwprintf(logStream, L"string\n");
+                break;
+            case IR_DT_CHAR:
+                fwprintf(logStream, L"char\n");
+                break;
+            case IR_DT_BOOL:
+                fwprintf(logStream, L"bool\n");
+                break;
+            case IR_DT_VOID:
+                fwprintf(logStream, L"void\n");
+                break;
+            case IR_DT_CUSTOM:
+                fwprintf(logStream, L"custom(%ls)\n", member->data.variable->type.customTypeName);
+                break;
             }
         } else if (member->type == IR_CM_FUNCTION) {
             fwprintf(logStream, L"\t\t函数:\n");
@@ -1660,27 +1649,27 @@ void showIRClassInfo(IR_Class* cls) {
         if (member->type == IR_CM_VARIABLE) {
             fwprintf(logStream, L"\t\t变量: 名字=%ls, 类型=", member->data.variable->name);
             switch (member->data.variable->type.kind) {
-                case IR_DT_INT:
-                    fwprintf(logStream, L"int\n");
-                    break;
-                case IR_DT_FLOAT:
-                    fwprintf(logStream, L"float\n");
-                    break;
-                case IR_DT_STRING:
-                    fwprintf(logStream, L"string\n");
-                    break;
-                case IR_DT_CHAR:
-                    fwprintf(logStream, L"char\n");
-                    break;
-                case IR_DT_BOOL:
-                    fwprintf(logStream, L"bool\n");
-                    break;
-                case IR_DT_VOID:
-                    fwprintf(logStream, L"void\n");
-                    break;
-                case IR_DT_CUSTOM:
-                    fwprintf(logStream, L"custom(%ls)\n", member->data.variable->type.customTypeName);
-                    break;
+            case IR_DT_INT:
+                fwprintf(logStream, L"int\n");
+                break;
+            case IR_DT_FLOAT:
+                fwprintf(logStream, L"float\n");
+                break;
+            case IR_DT_STRING:
+                fwprintf(logStream, L"string\n");
+                break;
+            case IR_DT_CHAR:
+                fwprintf(logStream, L"char\n");
+                break;
+            case IR_DT_BOOL:
+                fwprintf(logStream, L"bool\n");
+                break;
+            case IR_DT_VOID:
+                fwprintf(logStream, L"void\n");
+                break;
+            case IR_DT_CUSTOM:
+                fwprintf(logStream, L"custom(%ls)\n", member->data.variable->type.customTypeName);
+                break;
             }
         } else if (member->type == IR_CM_FUNCTION) {
             fwprintf(logStream, L"\t\t函数:\n");
@@ -1693,27 +1682,27 @@ void showIRClassInfo(IR_Class* cls) {
         if (member->type == IR_CM_VARIABLE) {
             fwprintf(logStream, L"\t\t变量: 名字=%ls, 类型=", member->data.variable->name);
             switch (member->data.variable->type.kind) {
-                case IR_DT_INT:
-                    fwprintf(logStream, L"int\n");
-                    break;
-                case IR_DT_FLOAT:
-                    fwprintf(logStream, L"float\n");
-                    break;
-                case IR_DT_STRING:
-                    fwprintf(logStream, L"string\n");
-                    break;
-                case IR_DT_CHAR:
-                    fwprintf(logStream, L"char\n");
-                    break;
-                case IR_DT_BOOL:
-                    fwprintf(logStream, L"bool\n");
-                    break;
-                case IR_DT_VOID:
-                    fwprintf(logStream, L"void\n");
-                    break;
-                case IR_DT_CUSTOM:
-                    fwprintf(logStream, L"custom(%ls)\n", member->data.variable->type.customTypeName);
-                    break;
+            case IR_DT_INT:
+                fwprintf(logStream, L"int\n");
+                break;
+            case IR_DT_FLOAT:
+                fwprintf(logStream, L"float\n");
+                break;
+            case IR_DT_STRING:
+                fwprintf(logStream, L"string\n");
+                break;
+            case IR_DT_CHAR:
+                fwprintf(logStream, L"char\n");
+                break;
+            case IR_DT_BOOL:
+                fwprintf(logStream, L"bool\n");
+                break;
+            case IR_DT_VOID:
+                fwprintf(logStream, L"void\n");
+                break;
+            case IR_DT_CUSTOM:
+                fwprintf(logStream, L"custom(%ls)\n", member->data.variable->type.customTypeName);
+                break;
             }
         } else if (member->type == IR_CM_FUNCTION) {
             fwprintf(logStream, L"\t\t函数:\n");
@@ -1730,31 +1719,31 @@ void showIRProgramInfo(IR_Program* program) {
         IR_Variable* var = program->global_variables[i];
         fwprintf(logStream, L"\t变量%d: 名字=%ls, 类型=", i + 1, var->name);
         switch (var->type.kind) {
-            case IR_DT_INT:
-                fwprintf(logStream, L"int\n");
-                break;
-            case IR_DT_FLOAT:
-                fwprintf(logStream, L"float\n");
-                break;
-            case IR_DT_STRING:
-                fwprintf(logStream, L"string\n");
-                break;
-            case IR_DT_CHAR:
-                fwprintf(logStream, L"char\n");
-                break;
-            case IR_DT_BOOL:
-                fwprintf(logStream, L"bool\n");
-                break;
-            case IR_DT_VOID:
-                fwprintf(logStream, L"void\n");
-                break;
-            case IR_DT_CUSTOM:
-                fwprintf(logStream, L"custom(%ls)\n", var->type.customTypeName);
-                break;
+        case IR_DT_INT:
+            fwprintf(logStream, L"int\n");
+            break;
+        case IR_DT_FLOAT:
+            fwprintf(logStream, L"float\n");
+            break;
+        case IR_DT_STRING:
+            fwprintf(logStream, L"string\n");
+            break;
+        case IR_DT_CHAR:
+            fwprintf(logStream, L"char\n");
+            break;
+        case IR_DT_BOOL:
+            fwprintf(logStream, L"bool\n");
+            break;
+        case IR_DT_VOID:
+            fwprintf(logStream, L"void\n");
+            break;
+        case IR_DT_CUSTOM:
+            fwprintf(logStream, L"custom(%ls)\n", var->type.customTypeName);
+            break;
         }
     }
-    fwprintf(logStream, L"函数个数: %d\n", program->function_count);
-    for (int i = 0; i < program->function_count; i++) {
+    fwprintf(logStream, L"函数个数: %d\n", program->functions.size());
+    for (int i = 0; i < program->functions.size(); i++) {
         fwprintf(logStream, L"---- 函数%d ----\n", i + 1);
         showFunctionInfo(program->functions[i]);
     }
@@ -2266,16 +2255,16 @@ IR_Class* parseClass(Tokens* tokens, int* index, int* err) {
 }
 inline static int getDataSize(IR_DataType type) {
     switch (type.kind) {
-        case IR_DT_INT:
-            return sizeof(int32_t);
-        case IR_DT_FLOAT:
-            return sizeof(float);
-        case IR_DT_CHAR:
-            return sizeof(uint16_t);
-        case IR_DT_BOOL:
-            return 1;
-        case IR_DT_STRING:
-            return sizeof(uint16_t*);  // 用uint16_t规范wchar_t*指针大小
+    case IR_DT_INT:
+        return sizeof(int32_t);
+    case IR_DT_FLOAT:
+        return sizeof(float);
+    case IR_DT_CHAR:
+        return sizeof(uint16_t);
+    case IR_DT_BOOL:
+        return 1;
+    case IR_DT_STRING:
+        return sizeof(uint16_t*);  // 用uint16_t规范wchar_t*指针大小
     }
 }
 inline IR_Class* getClassByName(const wchar_t* name, IR_Program* currentIRProgram) {

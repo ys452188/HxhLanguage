@@ -36,6 +36,7 @@ typedef struct ASTNode {
         } unary;  // NEG, POS
         struct {
             int op;
+            wchar_t* varName;   //mov需要
         } binary;  // ADD, SUB, MUL, DIV, MOV, STRING_CONCAT
         struct {
             wchar_t* name;
@@ -63,68 +64,68 @@ static void printAstNode(ASTNode* node, int level) {
     }
 
     switch (node->kind) {
-        case NODE_VALUE:
-            fwprintf(logStream, L"\033[1;32m[Value]\033[0m ");
-            if (node->data.value.type.kind == IR_DT_INT) {
-                fwprintf(logStream, L"INT: %d\n", node->data.value.val.i);
-            } else if (node->data.value.type.kind == IR_DT_FLOAT) {
-                fwprintf(logStream, L"FLOAT: %f\n", node->data.value.val.f);
-            } else if (node->data.value.type.kind == IR_DT_CHAR) {
-                fwprintf(logStream, L"CHAR: '%lc'\n", (wchar_t)node->data.value.val.c);
-            } else if (node->data.value.type.kind == IR_DT_STRING) {
-                fwprintf(logStream, L"STRING: \"%ls\"\n", node->data.value.val.s);
-            } else {
-                fwprintf(logStream, L"UNKNOWN TYPE\n");
-            }
-            break;
+    case NODE_VALUE:
+        fwprintf(logStream, L"\033[1;32m[Value]\033[0m ");
+        if (node->data.value.type.kind == IR_DT_INT) {
+            fwprintf(logStream, L"INT: %d\n", node->data.value.val.i);
+        } else if (node->data.value.type.kind == IR_DT_FLOAT) {
+            fwprintf(logStream, L"FLOAT: %f\n", node->data.value.val.f);
+        } else if (node->data.value.type.kind == IR_DT_CHAR) {
+            fwprintf(logStream, L"CHAR: '%lc'\n", (wchar_t)node->data.value.val.c);
+        } else if (node->data.value.type.kind == IR_DT_STRING) {
+            fwprintf(logStream, L"STRING: \"%ls\"\n", node->data.value.val.s);
+        } else {
+            fwprintf(logStream, L"UNKNOWN TYPE\n");
+        }
+        break;
 
-        case NODE_VAR:
-            fwprintf(logStream, L"\033[1;33m[Var]\033[0m name: %ls, index: %d\n", node->data.var.name, node->data.var.index);
-            break;
+    case NODE_VAR:
+        fwprintf(logStream, L"\033[1;33m[Var]\033[0m name: %ls, index: %d\n", node->data.var.name, node->data.var.index);
+        break;
 
-        case NODE_UNARY:
-            fwprintf(logStream, L"\033[1;35m[Unary]\033[0m op: %d\n", node->data.unary.op);
-            printAstNode(node->left, level + 1);
-            break;
+    case NODE_UNARY:
+        fwprintf(logStream, L"\033[1;35m[Unary]\033[0m op: %d\n", node->data.unary.op);
+        printAstNode(node->left, level + 1);
+        break;
 
-        case NODE_BINARY:
-            fwprintf(logStream, L"\033[1;36m[Binary]\033[0m op: ");
-            switch (node->data.binary.op) {
-                case 0:
-                    fwprintf(logStream, L"ADD (+)\n");
-                    break;
-                case 1:
-                    fwprintf(logStream, L"SUB (-)\n");
-                    break;
-                case 2:
-                    fwprintf(logStream, L"MUL (*)\n");
-                    break;
-                case 3:
-                    fwprintf(logStream, L"DIV (/)\n");
-                    break;
-                case 4:
-                    fwprintf(logStream, L"SET (=)\n");
-                    break;
-                case 5:
-                    fwprintf(logStream, L"STRING_CONCAT\n");
-                    break;
-                default:
-                    fwprintf(logStream, L"UNKNOWN (%d)\n", node->data.binary.op);
-            }
-            printAstNode(node->left, level + 1);
-            printAstNode(node->right, level + 1);
+    case NODE_BINARY:
+        fwprintf(logStream, L"\033[1;36m[Binary]\033[0m op: ");
+        switch (node->data.binary.op) {
+        case 0:
+            fwprintf(logStream, L"ADD (+)\n");
             break;
-
-        case NODE_FUN_CALL:
-            fwprintf(logStream, L"\033[1;34m[FunCall]\033[0m name: %ls, args: %u\n", node->data.funCall.name,
-                     node->data.funCall.arg_count);
-            for (uint32_t i = 0; i < node->data.funCall.arg_count; i++) {
-                printAstNode(node->data.funCall.args[i], level + 1);
-            }
+        case 1:
+            fwprintf(logStream, L"SUB (-)\n");
             break;
-
+        case 2:
+            fwprintf(logStream, L"MUL (*)\n");
+            break;
+        case 3:
+            fwprintf(logStream, L"DIV (/)\n");
+            break;
+        case 4:
+            fwprintf(logStream, L"SET (=)\n");
+            break;
+        case 5:
+            fwprintf(logStream, L"STRING_CONCAT\n");
+            break;
         default:
-            fwprintf(logStream, L"\033[1;31m[未知]\033[0m\n");
+            fwprintf(logStream, L"UNKNOWN (%d)\n", node->data.binary.op);
+        }
+        printAstNode(node->left, level + 1);
+        printAstNode(node->right, level + 1);
+        break;
+
+    case NODE_FUN_CALL:
+        fwprintf(logStream, L"\033[1;34m[FunCall]\033[0m name: %ls, args: %u\n", node->data.funCall.name,
+                 node->data.funCall.arg_count);
+        for (uint32_t i = 0; i < node->data.funCall.arg_count; i++) {
+            printAstNode(node->data.funCall.args[i], level + 1);
+        }
+        break;
+
+    default:
+        fwprintf(logStream, L"\033[1;31m[未知]\033[0m\n");
     }
 }
 extern void printAST(ASTNode* root) {
@@ -145,6 +146,7 @@ void freeAST(ASTNode* node) noexcept {
     if (!node) return;
     freeAST(node->left);
     freeAST(node->right);
+    if (node->kind == NODE_BINARY && node->data.binary.varName != NULL) free(node->data.binary.varName);
     if (node->kind == NODE_VAR) free(node->data.var.name);
     if (node->kind == NODE_VALUE && node->data.value.type.kind == IR_DT_STRING) free(node->data.value.val.s);
     free(node);
@@ -206,10 +208,10 @@ static ASTNode* parsePrimary(Token* tokens, int* index, int size, FunCallPitchTa
             isCast = true;
         }
 
-        // 如果结构匹配 (type)
+        // 结构匹配
         if (isCast && (*index + 1 < size) && tokens[*index + 1].type == TOK_OPR_RQUOTE) {
             *index += 2;  // 跳过类型关键字和右括号
-                          // ')'，此时指向后面的表达式
+            // ')'，此时指向后面的表达式
 
             // 解析后面的表达式 (调用 parsePrimary 可以同时支持
             // (int)a 和 (int)(a+b))
@@ -237,7 +239,7 @@ static ASTNode* parsePrimary(Token* tokens, int* index, int size, FunCallPitchTa
             return inner;
 
         } else {
-            // 不是强制转换，而是普通的算术括号表达式 (expr)
+            // 不是强制转换，而是普通的算术括号表达式 
             ASTNode* inner = parseExprRec(tokens, index, size, pitchTable, table, err, 0);
             if (*err == 0 && (*index < size && tokens[*index].type == TOK_OPR_RQUOTE)) {
                 (*index)++;  // 吃掉右括号
@@ -319,7 +321,7 @@ static ASTNode* parsePrimary(Token* tokens, int* index, int size, FunCallPitchTa
                         return NULL;
                     }
                     funCallNode->data.funCall.args = (ASTNode**)realloc(
-                        funCallNode->data.funCall.args, sizeof(ASTNode*) * (funCallNode->data.funCall.arg_count + 1));
+                                                         funCallNode->data.funCall.args, sizeof(ASTNode*) * (funCallNode->data.funCall.arg_count + 1));
                     funCallNode->data.funCall.args[funCallNode->data.funCall.arg_count] = arg;
                     funCallNode->data.funCall.arg_count++;
                 }
@@ -333,9 +335,15 @@ static ASTNode* parsePrimary(Token* tokens, int* index, int size, FunCallPitchTa
                 *index = argIndex + 1;
                 funCallNode->token = curr;
                 funCallNode->resultType.kind = IR_DT_VOID;  // 默认void
+#ifdef HX_DEBUG
+                log(L"获取函数索引和返回值类型(table->fun.size()=%d)", table->fun.size());
+#endif
                 // 获取函数索引和返回值类型
-                if (table->fun_size > 0) {
-                    for (uint32_t i = 0; i < table->fun_size; i++) {
+                if (table->fun.size() > 0) {
+                    for (uint32_t i = 0; i < table->fun.size(); i++) {
+#ifdef HX_DEBUG
+                        log(L"获取函数索引和返回值类型->遍历到：%ls", table->fun[i]->name);
+#endif
                         // 名字
                         IR_Function* f = table->fun[i];
                         if (!f) continue;
@@ -403,6 +411,7 @@ static ASTNode* parsePrimary(Token* tokens, int* index, int size, FunCallPitchTa
 
                 movNode->kind = NODE_BINARY;
                 movNode->data.binary.op = 4;
+                movNode->data.binary.varName = wcsdup(curr->value);
 
                 movNode->left = node;
                 // 连等支持
@@ -491,91 +500,91 @@ ASTNode* parseExprRec(Token* tokens, int* index, int size, FunCallPitchTable& pi
             if (combined->left->resultType.kind == IR_DT_STRING || combined->right->resultType.kind == IR_DT_STRING) {
                 ASTNode* node = combined->left;
                 switch (node->resultType.kind) {
-                    case IR_DT_INT:
-                        node->typeCast = OP_INT_TO_STRING;
-                        break;
-                    case IR_DT_FLOAT:
-                        node->typeCast = OP_INT_TO_STRING;
-                        break;
-                    case IR_DT_CHAR:
-                        node->typeCast = OP_CHAR_TO_STRING;
-                        break;
-                    case IR_DT_BOOL:
-                        node->typeCast = OP_INT_TO_STRING;
-                        break;
-                    case IR_DT_STRING:
-                        break;
+                case IR_DT_INT:
+                    node->typeCast = OP_INT_TO_STRING;
+                    break;
+                case IR_DT_FLOAT:
+                    node->typeCast = OP_INT_TO_STRING;
+                    break;
+                case IR_DT_CHAR:
+                    node->typeCast = OP_CHAR_TO_STRING;
+                    break;
+                case IR_DT_BOOL:
+                    node->typeCast = OP_INT_TO_STRING;
+                    break;
+                case IR_DT_STRING:
+                    break;
                 }
                 node = combined->right;
                 switch (node->resultType.kind) {
-                    case IR_DT_INT:
-                        node->typeCast = OP_INT_TO_STRING;
-                        break;
-                    case IR_DT_FLOAT:
-                        node->typeCast = OP_INT_TO_STRING;
-                        break;
-                    case IR_DT_CHAR:
-                        node->typeCast = OP_CHAR_TO_STRING;
-                        break;
-                    case IR_DT_BOOL:
-                        node->typeCast = OP_INT_TO_STRING;
-                        break;
-                    case IR_DT_STRING:
-                        break;
+                case IR_DT_INT:
+                    node->typeCast = OP_INT_TO_STRING;
+                    break;
+                case IR_DT_FLOAT:
+                    node->typeCast = OP_INT_TO_STRING;
+                    break;
+                case IR_DT_CHAR:
+                    node->typeCast = OP_CHAR_TO_STRING;
+                    break;
+                case IR_DT_BOOL:
+                    node->typeCast = OP_INT_TO_STRING;
+                    break;
+                case IR_DT_STRING:
+                    break;
                 }
             } else if (combined->left->resultType.kind == IR_DT_FLOAT || combined->right->resultType.kind == IR_DT_FLOAT) {
                 ASTNode* node = combined->left;
                 switch (node->resultType.kind) {
-                    case IR_DT_INT:
-                        node->typeCast = OP_INT_TO_FLOAT;
-                        break;
-                    case IR_DT_FLOAT:
-                        break;
-                    case IR_DT_CHAR:
-                        node->typeCast = OP_CHAR_TO_FLOAT;
-                        break;
-                    case IR_DT_BOOL:
-                        node->typeCast = OP_INT_TO_FLOAT;
-                        break;
+                case IR_DT_INT:
+                    node->typeCast = OP_INT_TO_FLOAT;
+                    break;
+                case IR_DT_FLOAT:
+                    break;
+                case IR_DT_CHAR:
+                    node->typeCast = OP_CHAR_TO_FLOAT;
+                    break;
+                case IR_DT_BOOL:
+                    node->typeCast = OP_INT_TO_FLOAT;
+                    break;
                 }
                 node = combined->right;
                 switch (node->resultType.kind) {
-                    case IR_DT_INT:
-                        node->typeCast = OP_INT_TO_FLOAT;
-                        break;
-                    case IR_DT_FLOAT:
-                        break;
-                    case IR_DT_CHAR:
-                        node->typeCast = OP_CHAR_TO_FLOAT;
-                        break;
-                    case IR_DT_BOOL:
-                        node->typeCast = OP_INT_TO_FLOAT;
-                        break;
+                case IR_DT_INT:
+                    node->typeCast = OP_INT_TO_FLOAT;
+                    break;
+                case IR_DT_FLOAT:
+                    break;
+                case IR_DT_CHAR:
+                    node->typeCast = OP_CHAR_TO_FLOAT;
+                    break;
+                case IR_DT_BOOL:
+                    node->typeCast = OP_INT_TO_FLOAT;
+                    break;
                 }
             } else if (combined->left->resultType.kind == IR_DT_INT || combined->right->resultType.kind == IR_DT_INT) {
                 ASTNode* node = combined->left;
                 switch (node->resultType.kind) {
-                    case IR_DT_INT:
-                        break;
-                    case IR_DT_FLOAT:
-                        break;
-                    case IR_DT_CHAR:
-                        node->typeCast = OP_CHAR_TO_INT;
-                        break;
-                    case IR_DT_BOOL:
-                        break;
+                case IR_DT_INT:
+                    break;
+                case IR_DT_FLOAT:
+                    break;
+                case IR_DT_CHAR:
+                    node->typeCast = OP_CHAR_TO_INT;
+                    break;
+                case IR_DT_BOOL:
+                    break;
                 }
                 node = combined->right;
                 switch (node->resultType.kind) {
-                    case IR_DT_INT:
-                        break;
-                    case IR_DT_FLOAT:
-                        break;
-                    case IR_DT_CHAR:
-                        node->typeCast = OP_CHAR_TO_INT;
-                        break;
-                    case IR_DT_BOOL:
-                        break;
+                case IR_DT_INT:
+                    break;
+                case IR_DT_FLOAT:
+                    break;
+                case IR_DT_CHAR:
+                    node->typeCast = OP_CHAR_TO_INT;
+                    break;
+                case IR_DT_BOOL:
+                    break;
                 }
             }
         }
@@ -629,7 +638,7 @@ ASTNode* parseExpression(Token* exp, int* index, int size, FunCallPitchTable& pi
             return NULL;
         }
     }
-    (*index)--;  // 指向表达式最后一个有效单元
+    (*index)--;  // 指向表达式最后一个有效Token
     return root;
 }
 

@@ -8,17 +8,16 @@
 #include <cstdio>
 #include <string>
 
-#pragma pack(push, 1)  // 强制 1 字节对齐
 typedef uint8_t Opcode;
 enum {
     OP_NOP = 0,
     OP_LOAD_CONST,  // 加载常量至栈顶 OP_LOAD_CONST <paramType> <paramValue>
-                    // |
+    // |
     // OP_LOAD_CONST <constantIndex>
     OP_LOAD_VAR,   // 加载变量至栈顶  LOAD_VAR <offest(u32)> <size(u32)(type为压栈后槽位标记的类型))>
     OP_POP,        // 弹出
     OP_STORE_VAR,  // 将栈顶值存入变量  OP_STORE_VAR <offest(u32)>
-                   // <copySize(u32)>
+    // <copySize(u32)>
     OP_ADD,
     OP_SUB,
     OP_MUL,
@@ -142,11 +141,11 @@ static int writeWstring(const wchar_t* wstr, FILE* file) noexcept {
     }
 
     uint32_t len = wcslen(wstr);
-    uint32_t byteLen = (len + 1) * sizeof(uint32_t);  // 含 \0
+    uint32_t byteLen = len*sizeof(uint16_t);  // 不含 \0
     if (fwrite(&byteLen, sizeof(byteLen), 1, file) != 1) return -1;
 
-    for (uint32_t i = 0; i <= len; i++) {
-        uint32_t cp = (uint32_t)wstr[i];
+    for (uint32_t i = 0; i < len; i++) {
+        uint16_t cp = (uint16_t)wstr[i];
         if (fwrite(&cp, sizeof(cp), 1, file) != 1) return -1;
     }
     return 0;
@@ -176,66 +175,66 @@ static int writeInstruction(Instruction& inst, FILE* file) {
 #ifdef HX_DEBUG
     fwprintf(logStream, L"写入指令");
     switch (inst.opcode) {
-        case OP_LOAD_CONST: {
-            fwprintf(logStream, L"\33[1;34mOP_LOAD_CONST\33[0m)\n");
-            break;
-        }
-        case OP_PRINT_STRING:
-            fwprintf(logStream, L"\33[1;34mOP_PRINT_STRING\33[0m\n");
-            break;
-        case OP_LOAD_VAR:
-            fwprintf(logStream, L"\33[1;34mOP_LOAD_VAR\33[0m)\n");
-            break;
-        case OP_STORE_VAR:
-            fwprintf(logStream, L"\33[1;34mOP_STORE_VAR\33[0m)\n");
-            break;
-        case OP_ADD:
-            fwprintf(logStream, L"\33[1;34mOP_ADD\33[0m)\n");
-            break;
-        case OP_SUB:
-            fwprintf(logStream, L"\33[1;34mOP_SUB\33[0m)\n");
-            break;
-        case OP_MUL:
-            fwprintf(logStream, L"\33[1;34mOP_MUL\33[0m)\n");
-            break;
-        case OP_DIV:
-            fwprintf(logStream, L"\33[1;34mOP_DIV\33[0m)\n");
-            break;
-        case OP_CAL:
-            fwprintf(logStream, L"\33[1;34mOP_CAL\33[0m)\n");
-            break;
-        case OP_RET:
-            fwprintf(logStream, L"\33[1;34mOP_RET\33[0m)\n");
-            break;
-        case OP_CHAR_TO_INT:
-            fwprintf(logStream, L"\33[1;34m OP_CHAR_TO_INT\33[0m\n");
-            break;
-        case OP_INT_TO_CHAR:
-            fwprintf(logStream, L"\33[1;34m OP_INT_TO_CHAR\33[0m\n");
-            break;
-        case OP_INT_TO_FLOAT:
-            fwprintf(logStream, L"\33[1;34m OP_INT_TO_CHAR\33[0m\n");
-            break;
-        case OP_CHAR_TO_FLOAT:
-            fwprintf(logStream, L"\33[1;34m OP_CHAR_TO_FLOAT\33[0m\n");
-            break;
-        case OP_CHAR_TO_STRING:
-            (logStream, L"\33[1;34m OP_CHAR_TO_STRING\33[0m\n");
-            break;
-        case OP_FLOAT_TO_INT:
-            (logStream, L"\33[1;34m OP_FLOAT_TO_INT\33[0m\n");
-            break;
-        case OP_INT_TO_STRING:
-            fwprintf(logStream, L"\33[1;34m OP_INT_TO_STRING\33[0m\n");
-            break;
-        case OP_POP:
-            fwprintf(logStream, L"\33[1;34m OP_POP\33[0m\n");
-            break;
-        case OP_JMP:
-            fwprintf(logStream, L"\33[1;34m OP_JMP\33[0m\n");
-            break;
-        default:
-            fwprintf(logStream, L"\33[1;31mOP_NOP\33[0m)\n");
+    case OP_LOAD_CONST: {
+        fwprintf(logStream, L"\33[1;34mOP_LOAD_CONST\33[0m)\n");
+        break;
+    }
+    case OP_PRINT_STRING:
+        fwprintf(logStream, L"\33[1;34mOP_PRINT_STRING\33[0m\n");
+        break;
+    case OP_LOAD_VAR:
+        fwprintf(logStream, L"\33[1;34mOP_LOAD_VAR\33[0m)\n");
+        break;
+    case OP_STORE_VAR:
+        fwprintf(logStream, L"\33[1;34mOP_STORE_VAR\33[0m)\n");
+        break;
+    case OP_ADD:
+        fwprintf(logStream, L"\33[1;34mOP_ADD\33[0m)\n");
+        break;
+    case OP_SUB:
+        fwprintf(logStream, L"\33[1;34mOP_SUB\33[0m)\n");
+        break;
+    case OP_MUL:
+        fwprintf(logStream, L"\33[1;34mOP_MUL\33[0m)\n");
+        break;
+    case OP_DIV:
+        fwprintf(logStream, L"\33[1;34mOP_DIV\33[0m)\n");
+        break;
+    case OP_CAL:
+        fwprintf(logStream, L"\33[1;34mOP_CAL\33[0m)\n");
+        break;
+    case OP_RET:
+        fwprintf(logStream, L"\33[1;34mOP_RET\33[0m)\n");
+        break;
+    case OP_CHAR_TO_INT:
+        fwprintf(logStream, L"\33[1;34m OP_CHAR_TO_INT\33[0m\n");
+        break;
+    case OP_INT_TO_CHAR:
+        fwprintf(logStream, L"\33[1;34m OP_INT_TO_CHAR\33[0m\n");
+        break;
+    case OP_INT_TO_FLOAT:
+        fwprintf(logStream, L"\33[1;34m OP_INT_TO_CHAR\33[0m\n");
+        break;
+    case OP_CHAR_TO_FLOAT:
+        fwprintf(logStream, L"\33[1;34m OP_CHAR_TO_FLOAT\33[0m\n");
+        break;
+    case OP_CHAR_TO_STRING:
+        (logStream, L"\33[1;34m OP_CHAR_TO_STRING\33[0m\n");
+        break;
+    case OP_FLOAT_TO_INT:
+        (logStream, L"\33[1;34m OP_FLOAT_TO_INT\33[0m\n");
+        break;
+    case OP_INT_TO_STRING:
+        fwprintf(logStream, L"\33[1;34m OP_INT_TO_STRING\33[0m\n");
+        break;
+    case OP_POP:
+        fwprintf(logStream, L"\33[1;34m OP_POP\33[0m\n");
+        break;
+    case OP_JMP:
+        fwprintf(logStream, L"\33[1;34m OP_JMP\33[0m\n");
+        break;
+    default:
+        fwprintf(logStream, L"\33[1;31mOP_NOP\33[0m)\n");
     }
 #endif
     // 写opcode
@@ -247,27 +246,24 @@ static int writeInstruction(Instruction& inst, FILE* file) {
     return 0;
 }
 static int writeProcedure(Procedure& proc, FILE* file) noexcept {
-    if (!isInDebugMode) {
-        for (int i = 0; i < proc.instructionSize; i++) {
-            if (proc.instructions.at(i).isNotUsed) {
-                proc.instructionSize--;
-            }
+// 过滤出真正需要写入的指令
+    std::vector<Instruction> validInstructions;
+    for (size_t i = 0; i < proc.instructions.size(); i++) {
+        if (isInDebugMode || !proc.instructions.at(i).isNotUsed) {
+            validInstructions.push_back(proc.instructions.at(i));
         }
-#ifdef HX_DEBUG
-        log(L"算得指令数为%d", proc.instructionSize);
-#endif
     }
-    // 写instructionSize
+
+    // 更新并写入正确的指令数量
+    proc.instructionSize = static_cast<uint32_t>(validInstructions.size());
 #ifdef HX_DEBUG
-    log(L"写instructionSize:%d", proc.instructionSize);
+    log(L"写 instructionSize:%d", proc.instructionSize);
 #endif
     if (fwrite(&(proc.instructionSize), sizeof(uint32_t), 1, file) != 1) return -1;
-    // 写instructions
-#ifdef HX_DEBUG
-    log(L"写instructions");
-#endif
-    for (int i = 0; i < proc.instructions.size(); i++) {
-        if (writeInstruction(proc.instructions.at(i), file)) return -1;
+
+    // 严格写入对应数量的有效指令
+    for (size_t i = 0; i < validInstructions.size(); i++) {
+        if (writeInstruction(validInstructions[i], file)) return -1;
     }
     // stackSize
 #ifdef HX_DEBUG

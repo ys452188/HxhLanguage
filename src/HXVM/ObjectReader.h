@@ -12,12 +12,12 @@ typedef uint8_t Opcode;
 enum {
     OP_NOP = 0,
     OP_LOAD_CONST,  // 加载常量至栈顶 OP_LOAD_CONST <paramType> <paramValue>
-                    // |
+    // |
     // OP_LOAD_CONST <constantIndex>
     OP_LOAD_VAR,   // 加载变量至栈顶
     OP_POP,        // 弹出
     OP_STORE_VAR,  // 将栈顶值存入变量  OP_STORE_VAR <offest(u32)>
-                   // <copySize(u32)>
+    // <copySize(u32)>
     OP_ADD,
     OP_SUB,
     OP_MUL,
@@ -105,17 +105,17 @@ inline static wchar_t* readWstring(FILE* file) {
     if (fread(&byteLen, sizeof(byteLen), 1, file) != 1) return nullptr;
     if (byteLen == 0) return nullptr;
 
-    uint32_t charCount = byteLen / sizeof(uint32_t);
+    uint32_t charCount = byteLen / sizeof(uint16_t);
 
-    uint32_t* buf = (uint32_t*)malloc(byteLen);
+    uint16_t* buf = (uint16_t*)malloc(byteLen+sizeof(uint16_t));
     if (!buf) return nullptr;
 
-    if (fread(buf, sizeof(uint32_t), charCount, file) != charCount) {
+    if (fread(buf, sizeof(uint16_t), charCount, file) != charCount) {
         free(buf);
         return nullptr;
     }
 
-    wchar_t* wstr = (wchar_t*)calloc(charCount, sizeof(wchar_t));
+    wchar_t* wstr = (wchar_t*)calloc(charCount+1, sizeof(wchar_t));
     if (!wstr) {
         free(buf);
         return nullptr;
@@ -219,8 +219,14 @@ inline int readObjectCode(FILE* file, ObjectCode& obj) {
             proc.instructions.push_back(instr);
         }
         // 读取运行栈和局部变量配置
-        if (fread(&(proc.stackSize), sizeof(uint32_t), 1, file) != 1) break;
-        if (fread(&(proc.localVarSize), sizeof(uint32_t), 1, file) != 1) break;
+        if (fread(&(proc.stackSize), sizeof(uint32_t), 1, file) != 1) {
+            fclose(file);
+            return -1;
+        }
+        if (fread(&(proc.localVarSize), sizeof(uint32_t), 1, file) != 1) {
+            fclose(file);
+            return -1;
+        }
     }
     // 读取入口
     if (fread(&(obj.start), sizeof(uint32_t), 1, file) != 1) {

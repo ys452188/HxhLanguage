@@ -16,15 +16,18 @@ class: A->D {
     var:a:str;
 }
 定义函数：主函数（无参数）->{
-    定义变量：新变量，类型是:int。
+    定义变量：新变量，类型是:整型。
     新变量 = 114。
     
     var:newVar1:int。
-    
-    newVar1 = 新变量+514。
+    newVar1 = f()+新变量。
     
     #循环-> __hx_write_string__ "Hello, HxHLanguage!\n"。
     __hx_write_string__ "Hello, HxHLanguage!\n"。
     
+    
     返回：newVar1。  
+}
+fun:f()-> {
+    ret:1919810;
 }

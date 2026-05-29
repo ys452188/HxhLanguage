@@ -1,7 +1,7 @@
 #include <atomic>
 
 #include "config.h"
-// #define HX_DEBUG
+//#define HX_DEBUG
 std::atomic<bool> shouldExit{false};  // 要退出吗，用于处理SIGINT
 #define OP_STACK_SIZE 512             // 操作数栈大小
 #define HXVM_VERSION 0.114f
@@ -37,9 +37,10 @@ typedef struct InterpretData {
 } InterpretData;
 void* interpret_packed(void* dataPtr) {
     InterpretData data = *((InterpretData*)dataPtr);
-    *(data.ret) = interpret(*(data.obj), *(data.err));
+    *(data.ret) = interpret(*(data.obj), *(data.ret), *(data.err));
     return NULL;
 }
+
 int main(int argc, char** argv) {
     // 注册 Ctrl+C 信号
     std::signal(SIGINT, signalHandler);
@@ -61,7 +62,6 @@ int main(int argc, char** argv) {
     wprintf(LOG_LABEL L"读取%d个过程\n", objCode.procedureSize);
     wprintf(LOG_LABEL L"入口索引：%d\n", objCode.start);
 #endif
-
     int err = 0;
     int ret = 0;
     pthread_t mainThread = {};
@@ -87,6 +87,9 @@ int main(int argc, char** argv) {
 void signalHandler(int signalNumber) {
     if (signalNumber == SIGINT) {
         wprintf(INFO_LABEL L"\33[1;31m不......不要停♡\33[0m\n");
+        shouldExit.store(true);
+    } else if(signalNumber == SIGSEGV) {
+        wprintf(INFO_LABEL L"\33[1;31m段内存犯规了！\33[0m\n");
         shouldExit.store(true);
     }
 }

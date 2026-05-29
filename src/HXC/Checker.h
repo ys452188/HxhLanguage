@@ -5,9 +5,9 @@
  * 在分析到新函数时检查函数是否重复定义，包含对错误的处理
  * @return 错误为-255，-1为未声明，否则为声明在表中的索引
  */
-int isFunctionRepeatDefine(IR_Function* fun, IR_Function** table, int table_size) {
-    if (!fun || !table) return -1;
-    for (int i = 0; i < table_size; i++) {
+int isFunctionRepeatDefine(IR_Function* fun, std::vector<IR_Function*>& table) {
+    if (!fun) return -1;
+    for (int i = 0; i < table.size(); i++) {
         if (!table[i]) continue;
         if (wcscmp(fun->name, table[i]->name) == 0) {
             if (fun->paramCount == table[i]->paramCount) {

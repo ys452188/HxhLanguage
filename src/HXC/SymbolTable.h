@@ -87,15 +87,14 @@ typedef struct IR_Class {
 typedef struct IR_Program {
     IR_Variable** global_variables;
     int global_variable_count;
-    IR_Function** functions;
-    int function_count;
+    std::vector<IR_Function*> functions;
     IR_Class** classes;
     int class_count;
 } IR_Program;
 
 // 变量处理：存储各变量与其对应的指令，用于回填、标记是否有用
 class Symbol {
-   public:
+public:
     bool isUsed;
     wchar_t* name;
     bool isTypeKnown;
@@ -105,20 +104,47 @@ class Symbol {
     std::vector<int> instIndex;
     int procIndex;
 
+    Symbol() : name(nullptr), isTypeKnown(false), size(0), offest(0) {}
+    //拷贝构造函数
+    Symbol(const Symbol& other) {
+        this->isTypeKnown = other.isTypeKnown;
+        this->type = other.type;
+        this->size = other.size;
+        this->offest = other.offest;
+        if (other.name != nullptr) {
+            this->name = wcsdup(other.name);
+        } else {
+            this->name = nullptr;
+        }
+        this->instIndex = other.instIndex;
+    }
+
+    //赋值运算符实现
+    //圣杯写法
+    Symbol& operator=(Symbol other) {
+        // 把当前对象的内容和other进行大交换
+        std::swap(this->name, other.name);
+        std::swap(this->isTypeKnown, other.isTypeKnown);
+        std::swap(this->type, other.type);
+        std::swap(this->size, other.size);
+        std::swap(this->offest, other.offest);
+        std::swap(this->instIndex, other.instIndex);
+        return *this;
+    }
+
     ~Symbol() {
-        // free(name);
+        free(name);
         name = nullptr;
     }
 };
 
 typedef struct SymbolTable {
-    IR_Function** fun;  // 函数表（数组）
-    uint32_t fun_size;
+    std::vector<IR_Function*> fun;  // 函数表（数组）
     std::vector<Symbol> vars;
     uint32_t var_size;
 } SymbolTable;
 class FunCallPitch {  // 回填CALL指令,被指向
-   public:
+public:
     FunCallPitch(IR_Function* ir_fun) noexcept : fun(ir_fun) {}
     IR_Function* fun;
     int index;
@@ -126,7 +152,7 @@ class FunCallPitch {  // 回填CALL指令,被指向
 class FunCallPitchTable {
     std::vector<FunCallPitch*> pitches;
 
-   public:
+public:
     FunCallPitch* enter(IR_Function* fun) {
         for (int i = 0; i < pitches.size(); i++) {
             if (pitches.at(i)->fun == fun) return pitches.at(i);
