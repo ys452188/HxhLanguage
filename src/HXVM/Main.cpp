@@ -47,11 +47,22 @@ int main(int argc, char** argv) {
     clock_t start, end;
     start = clock();
     initLocale();
+    std::string path = "";
+    for(int i = 1; i < argc; i++) {
+        if(strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--version") == 0) {
+            wprintf(INFO_LABEL L"当时版本是 %f 喵~\n快来操作hxvm喵\n", HXVM_VERSION);
+            return 0;
+        } else {
+            path = argv[i];
+        }
+    }
     wprintf(INFO_LABEL L"开始\n");
 
     memoryAllocer;
     ObjectCode objCode = {};
-    std::string path = "../test/out.hxo";
+#ifdef HX_DEBUG
+    path = "../test/out.hxo";
+#endif
     FILE* file = fopen(path.c_str(), "rb");
     // 读
     if (readObjectCode(file, objCode)) {

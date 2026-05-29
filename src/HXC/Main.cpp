@@ -40,7 +40,24 @@ int main(int argc, char* argv[]) {
             return -1;
         }
         */
-        std::string path("../test/test.hxl");
+        std::string path = "";
+        std::string objPath = "";
+#ifdef HX_DEBUG
+        path = "../test/test.hxl";
+        objPath = "../test/out.hxo";
+#else
+        for(int i = 1; i < argc; i++) {
+            if(strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--version") == 0) {
+                fwprintf(outputStream, L"\33[1;34m[INFO]\33[0m当时版本是 %f 喵~\n快来操作hxc喵\n", HXC_VERSION);
+                return 0;
+            } else if(strcmp(argv[i], "-o") == 0 || strcmp(argv[i], "--output") == 0) {
+                i++;
+                if(i < argc) objPath = argv[i];
+            } else {
+                path = argv[i];
+            }
+        }
+#endif
         // 读取源文件
         wchar_t* src = NULL;
         FILE* sourceFile = fopen(path.c_str(), "r");
@@ -110,7 +127,7 @@ int main(int argc, char* argv[]) {
             freeIRProgram(&program);
             return -1;
         }
-        std::string objPath = "../test/out.hxo";
+
         FILE* objFile = fopen(objPath.c_str(), "wb");
         writeObjectCode(objFile, *objCode);
         freeIRProgram(&program);

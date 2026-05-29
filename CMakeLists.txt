@@ -1,7 +1,7 @@
 #########CMake语法好难看啊啊啊啊啊##########
 
 cmake_minimum_required(VERSION 3.5)
-project(HxLanguage VERSION 0.114 LANGUAGES CXX)
+project(HxHLanguage VERSION 0.114 LANGUAGES CXX)
 
 ########配置文件
 set(CONFIG_FILE "${CMAKE_CURRENT_SOURCE_DIR}/config.txt")

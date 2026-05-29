@@ -1,1 +1,0 @@
-/data/data/com.termux/files/usr/bin/c++ -O2 -g -DNDEBUG -Wl,-z,common-page-size=65536 -Wl,-z,max-page-size=65536 -Xlinker --dependency-file=CMakeFiles/hxvm.dir/link.d CMakeFiles/hxvm.dir/src/HXVM/Main.cpp.o -o hxvm

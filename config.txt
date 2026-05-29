@@ -1,6 +1,6 @@
 #配置文件
 
 #是否打印调试信息
-HX_DEBUG=OFF
+HX_DEBUG=ON
 #setError语言
 LANG=zh_TW

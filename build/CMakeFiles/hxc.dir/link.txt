@@ -1,1 +1,0 @@
-/data/data/com.termux/files/usr/bin/c++ -O2 -g -DNDEBUG -Xlinker --dependency-file=CMakeFiles/hxc.dir/link.d CMakeFiles/hxc.dir/src/HXC/Main.cpp.o -o hxc

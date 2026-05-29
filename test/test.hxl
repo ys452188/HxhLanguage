@@ -25,9 +25,13 @@ class: A->D {
     #循环-> __hx_write_string__ "Hello, HxHLanguage!\n"。
     __hx_write_string__ "Hello, HxHLanguage!\n"。
     
-    
-    返回：newVar1。  
+    g(); 
+    返回：0。  
 }
 fun:f()-> {
     ret:1919810;
+}
+fun:g()-> {
+    __hx_write_string__ "Hello, HxHLanguage!\n"。
+    g()。
 }

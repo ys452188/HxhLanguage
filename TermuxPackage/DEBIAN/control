@@ -1,0 +1,6 @@
+Package: hxhlang
+Version: 0.114
+Architecture: aarch64
+Maintainer: cuso4(ys452188)
+Depends: libc++
+Description: HxHLanguage是ys452188(cuso4)开发的玩具语言喵～这个包(hxhlang)是专为Termux构建的喵
