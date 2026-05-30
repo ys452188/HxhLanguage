@@ -589,7 +589,7 @@ static int getVarSize(IR_DataType type, IR_Class** class_table, int class_table_
 /*生成语句的目标代码*/
 static int generateStatement(int& index, FunCallPitchTable& pitchTable, ConstantPool* constantPool, std::vector<IR_Function*>& all_functions,
                              IR_Program* currentProgram, int all_function_count, IR_Function* function,
-                             SymbolTable& localeSymbolTable, std::vector<SymbolTable>& outsideScopes, Procedure* proc,
+                             SymbolTable& localeSymbolTable, std::vector<SymbolTable>& outsideScopes, int localeScopeIndex, Procedure* proc,
                              int procIndex, uint32_t& stackSize, uint32_t& localVarSize, int* err);
 Procedure* generateFunction(int procIndex, IR_Function* function, IR_Program* currentProgram, FunCallPitchTable& pitchTable,
                             ConstantPool* constantPool, std::vector<IR_Function*>& all_functions, int all_function_count,
@@ -612,11 +612,12 @@ Procedure* generateFunction(int procIndex, IR_Function* function, IR_Program* cu
         proc->stackSize = 0;
         return proc;
     }
-    int index = 0;
+    int index = 1;   //跳过 {
     SymbolTable localeSymbolTable = {};
     // 填充函数表
     localeSymbolTable.fun = all_functions;
     symbols.push_back(localeSymbolTable);
+    int localeScopeIndex = symbols.size()-1;
 #ifdef HX_DEBUG
     log(L"all_functions.size = %d", all_functions.size());
 #endif
@@ -624,9 +625,9 @@ Procedure* generateFunction(int procIndex, IR_Function* function, IR_Program* cu
     log(L"localeSymbolTable.fun.size = %d", localeSymbolTable.fun.size());
 #endif
     proc->instructionSize = 0;
-    while (index < function->body_token_count) {
+    while (index < function->body_token_count - 1) {
         if (generateStatement(index, pitchTable, constantPool, localeSymbolTable.fun, currentProgram, all_function_count, function,
-                              symbols.at(0), symbols, proc, procIndex, proc->stackSize, proc->localVarSize, err))
+                              symbols.at(0), symbols, localeScopeIndex, proc, procIndex, proc->stackSize, proc->localVarSize, err))
             return NULL;
         index++;
     }
@@ -637,10 +638,32 @@ Procedure* generateFunction(int procIndex, IR_Function* function, IR_Program* cu
 static int generateStatement(int& index, FunCallPitchTable& pitchTable, ConstantPool* constantPool, std::vector<IR_Function*>& all_functions,
                              IR_Program* currentProgram, int all_function_count, IR_Function* function,
                              SymbolTable& localeSymbolTable,
-                             std::vector<SymbolTable>& outsideScopes /*块内与块外的并集,localeSymbolTable包含其中*/,
+                             std::vector<SymbolTable>& outsideScopes /*块内与块外的并集,localeSymbolTable包含其中*/, int localeScopeIndex,
                              Procedure* proc, int procIndex, uint32_t& stackSize, uint32_t& localVarSize, int* err) {
     Token& currentToken = function->bodyTokens[index];
     if (currentToken.type == TOK_END) return 0;
+    if (currentToken.type == TOK_OPR_LBRACE) { //块
+#ifdef HX_DEBUG
+        log(L"========分析块-----");
+#endif
+        index++;    //跳过 {
+        SymbolTable newLocalScope = {};
+        newLocalScope.fun = outsideScopes.back().fun;
+        outsideScopes.push_back(newLocalScope);
+        uint32_t _localVarSize = 0U;
+        int newLocaleScopeIndex = outsideScopes.size()-1;
+        while(function->bodyTokens[index].type != TOK_OPR_RBRACE) {
+            generateStatement(index, pitchTable,constantPool, all_functions,currentProgram, all_function_count, function,
+                              outsideScopes.back(), outsideScopes,newLocaleScopeIndex, proc, procIndex, stackSize, _localVarSize, err);
+            if(*err) return *err;
+            index++;
+        }
+
+        index++;  //跳过结尾的  }
+#ifdef HX_DEBUG
+        log(L"========离开块------");
+#endif
+    }
     // 返回返回值
     if (wcscmp(currentToken.value, L"ret") == 0 || wcscmp(currentToken.value, L"返回") == 0) {
 #ifdef HX_DEBUG
@@ -682,7 +705,7 @@ static int generateStatement(int& index, FunCallPitchTable& pitchTable, Constant
         index++;  // 指向表达式起始位置
         // wprintf(L"%ls", function->bodyTokens[index].value);
         ASTNode* expNode =
-            parseExpression(function->bodyTokens, &index, function->body_token_count, pitchTable, &localeSymbolTable, err);
+            parseExpression(function->bodyTokens, &index, function->body_token_count, pitchTable, &localeSymbolTable, outsideScopes, localeScopeIndex, err);
         if (*err != 0 || !expNode) {
             delete (proc);
             return 255;
@@ -754,7 +777,7 @@ static int generateStatement(int& index, FunCallPitchTable& pitchTable, Constant
         if ((function->bodyTokens[index].type != TOK_END)) return 0;
     } else if (currentToken.type == TOK_ID) {  // 赋值或调用函数
         ASTNode* expNode =
-            parseExpression(function->bodyTokens, &index, function->body_token_count, pitchTable, &localeSymbolTable, err);
+            parseExpression(function->bodyTokens, &index, function->body_token_count, pitchTable, &localeSymbolTable, outsideScopes, localeScopeIndex, err);
         if (*err != 0 || !expNode) {
             delete (proc);
             return 255;
@@ -1323,7 +1346,7 @@ static int generateStatement(int& index, FunCallPitchTable& pitchTable, Constant
         index++;  // 指向语句或块
         uint32_t jmpAddr = proc->instructions.size();
         generateStatement(index, pitchTable, constantPool, all_functions, currentProgram, all_function_count, function,
-                          localeSymbolTable, outsideScopes, proc, procIndex, stackSize, localVarSize, err);
+                          localeSymbolTable, outsideScopes, localeScopeIndex, proc, procIndex, stackSize, localVarSize, err);
         // 条件
         if (wcscmp(function->bodyTokens[index].value, L"until") == 0) {
         }
@@ -1356,7 +1379,7 @@ static int generateStatement(int& index, FunCallPitchTable& pitchTable, Constant
         index++;  // 指向语句或块
         uint32_t jmpAddr = proc->instructions.size();
         generateStatement(index, pitchTable, constantPool, all_functions, currentProgram, all_function_count, function,
-                          localeSymbolTable, outsideScopes, proc, procIndex, stackSize, localVarSize, err);
+                          localeSymbolTable, outsideScopes, localeScopeIndex, proc, procIndex, stackSize, localVarSize, err);
         // 条件
         if (wcscmp(function->bodyTokens[index].value, L"直到") == 0) {
         }
@@ -1395,7 +1418,7 @@ static int generateStatement(int& index, FunCallPitchTable& pitchTable, Constant
             if (function->bodyTokens[index].type == TOK_OPR_POINT) break;
         }
         // 分析表达式
-        ASTNode* expNode = parseExpression(function->bodyTokens, &expIndex, index, pitchTable, &localeSymbolTable, err);
+        ASTNode* expNode = parseExpression(function->bodyTokens, &expIndex, index, pitchTable, &localeSymbolTable, outsideScopes, localeScopeIndex, err);
         if (*err != 0 || !expNode) {
             delete (proc);
             return 255;
@@ -1425,7 +1448,7 @@ static int generateStatement(int& index, FunCallPitchTable& pitchTable, Constant
         }
         index++;  // 指向语句或块
         generateStatement(index, pitchTable, constantPool, all_functions, currentProgram, all_function_count, function,
-                          localeSymbolTable, outsideScopes, proc, procIndex, stackSize, localVarSize, err);
+                          localeSymbolTable, outsideScopes, localeScopeIndex, proc, procIndex, stackSize, localVarSize, err);
         // 生成OP_JMP_CONDITION指令
     }
     return 0;

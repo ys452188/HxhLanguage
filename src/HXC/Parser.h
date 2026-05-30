@@ -139,7 +139,7 @@ extern void printAST(ASTNode* root) {
 }
 #endif
 
-extern ASTNode* parseExpression(Token* exp, int* index, int size, FunCallPitchTable& pitchTable, SymbolTable* table,
+extern ASTNode* parseExpression(Token* exp, int* index, int size, FunCallPitchTable& pitchTable, SymbolTable* table, std::vector<SymbolTable>& outsideTable, int localeScopeIndex,
                                 int* err) noexcept;
 
 void freeAST(ASTNode* node) noexcept {
@@ -163,13 +163,13 @@ static int getPrec(HxTokenType t) noexcept {
     if (t == TOK_OPR_SET) return 0;
     return -1;
 }
-static ASTNode* parsePrimary(Token* tokens, int* index, int size, FunCallPitchTable& pitchTable, SymbolTable* table,
+static ASTNode* parsePrimary(Token* tokens, int* index, int size, FunCallPitchTable& pitchTable, SymbolTable* table, std::vector<SymbolTable>& outsideTable, int localeScopeIndex,
                              int* err) noexcept;
-static ASTNode* parseExprRec(Token* tokens, int* index, int size, FunCallPitchTable& pitchTable, SymbolTable* table, int* err,
+static ASTNode* parseExprRec(Token* tokens, int* index, int size, FunCallPitchTable& pitchTable, SymbolTable* table, std::vector<SymbolTable>& outsideTable, int localeScopeIndex, int* err,
                              int min_prec) noexcept;
 
 // 解析数字、变量、括号
-static ASTNode* parsePrimary(Token* tokens, int* index, int size, FunCallPitchTable& pitchTable, SymbolTable* table,
+static ASTNode* parsePrimary(Token* tokens, int* index, int size, FunCallPitchTable& pitchTable, SymbolTable* table, std::vector<SymbolTable>& outsideTable, int localeScopeIndex,
                              int* err) noexcept {
     if (*index >= size) {
         *err = 255;
@@ -215,7 +215,7 @@ static ASTNode* parsePrimary(Token* tokens, int* index, int size, FunCallPitchTa
 
             // 解析后面的表达式 (调用 parsePrimary 可以同时支持
             // (int)a 和 (int)(a+b))
-            ASTNode* inner = parsePrimary(tokens, index, size, pitchTable, table, err);
+            ASTNode* inner = parsePrimary(tokens, index, size, pitchTable, table, outsideTable, localeScopeIndex, err);
             if (*err != 0 || !inner) return NULL;
 
             // 对比实际类型与目标类型，若不同则打上转换指令标签
@@ -239,8 +239,8 @@ static ASTNode* parsePrimary(Token* tokens, int* index, int size, FunCallPitchTa
             return inner;
 
         } else {
-            // 不是强制转换，而是普通的算术括号表达式 
-            ASTNode* inner = parseExprRec(tokens, index, size, pitchTable, table, err, 0);
+            // 不是强制转换，而是普通的算术括号表达式
+            ASTNode* inner = parseExprRec(tokens, index, size, pitchTable, table, outsideTable, localeScopeIndex, err, 0);
             if (*err == 0 && (*index < size && tokens[*index].type == TOK_OPR_RQUOTE)) {
                 (*index)++;  // 吃掉右括号
                 return inner;
@@ -282,12 +282,24 @@ static ASTNode* parsePrimary(Token* tokens, int* index, int size, FunCallPitchTa
         // 先不管有没有等号，统一先把当前标识符解析成变量节点
         node->kind = NODE_VAR;
         node->data.var.name = wcsdup(curr->value);
-        int symIdx = getVarIndex(node->data.var.name, table);
+        int symIdx = -1;
+        int varScope = 0;
+#ifdef HX_DEBUG
+        log(L"处理变量或函数 -> 查找");
+#endif
+        if(outsideTable.size() > 0)
+            for(int i = localeScopeIndex; i >= 0; i--) {
+                varScope = i;
+                if((symIdx = getVarIndex(node->data.var.name, &outsideTable.at(i))) != -1) break;
+            }
         node->data.var.index = symIdx;
 
         if (symIdx != -1) {
-            node->resultType = table->vars[symIdx].type;
-            node->data.var.type = table->vars[symIdx].type;
+#ifdef HX_DEBUG
+            log(L"处理变量或函数 -> 查找到变量");
+#endif
+            node->resultType = outsideTable.at(varScope).vars[symIdx].type;
+            node->data.var.type = outsideTable.at(varScope).vars[symIdx].type;
         }
         if (*index < size - 1) {
             Token* next = &tokens[*index + 1];
@@ -315,7 +327,7 @@ static ASTNode* parsePrimary(Token* tokens, int* index, int size, FunCallPitchTa
                         argIndex++;
                         continue;
                     }
-                    ASTNode* arg = parseExpression(tokens, &argIndex, size, pitchTable, table, err);
+                    ASTNode* arg = parseExpression(tokens, &argIndex, size, pitchTable, table, outsideTable, localeScopeIndex, err);
                     if (*err != 0) {
                         freeAST(funCallNode);
                         return NULL;
@@ -415,7 +427,7 @@ static ASTNode* parsePrimary(Token* tokens, int* index, int size, FunCallPitchTa
 
                 movNode->left = node;
                 // 连等支持
-                movNode->right = parseExprRec(tokens, index, size, pitchTable, table, err, getPrec(TOK_OPR_SET));
+                movNode->right = parseExprRec(tokens, index, size, pitchTable, table, outsideTable, localeScopeIndex, err, getPrec(TOK_OPR_SET));
 
                 if (*err) {
                     free(movNode);
@@ -426,10 +438,16 @@ static ASTNode* parsePrimary(Token* tokens, int* index, int size, FunCallPitchTa
 
                 return movNode;
             } else {
+                if (symIdx == -1) {
+                    setError(ERR_CANNOT_FIND_SYMBOL, curr->line, curr->value);
+                    *err = 255;
+                    freeAST(node);
+                    return NULL;
+                }
 #ifdef HX_DEBUG
-                log(L"已将变量%ls设为有用", table->vars.at(symIdx).name);
+                log(L"已将变量%ls设为有用", outsideTable.at(varScope).vars.at(symIdx).name);
 #endif
-                table->vars.at(symIdx).isUsed = true;
+                outsideTable.at(varScope).vars.at(symIdx).isUsed = true;
                 (*index)++;
                 return node;
             }
@@ -460,9 +478,9 @@ IR_DataType getResultTypeForBinaryOp(IR_DataType left, IR_DataType right) noexce
     }
 }
 // 优先级爬升
-ASTNode* parseExprRec(Token* tokens, int* index, int size, FunCallPitchTable& pitchTable, SymbolTable* table, int* err,
+ASTNode* parseExprRec(Token* tokens, int* index, int size, FunCallPitchTable& pitchTable, SymbolTable* table, std::vector<SymbolTable>& outsideTable, int localeScopeIndex, int* err,
                       int min_prec) noexcept {
-    ASTNode* lhs = parsePrimary(tokens, index, size, pitchTable, table, err);
+    ASTNode* lhs = parsePrimary(tokens, index, size, pitchTable, table, outsideTable, localeScopeIndex, err);
     if (*err != 0 || lhs == NULL) return lhs;
 
     while (*index < size) {
@@ -473,7 +491,7 @@ ASTNode* parseExprRec(Token* tokens, int* index, int size, FunCallPitchTable& pi
         // 消耗掉运算符
         (*index)++;
         // 递归解析右侧操作数
-        ASTNode* rhs = parseExprRec(tokens, index, size, pitchTable, table, err, prec + 1);
+        ASTNode* rhs = parseExprRec(tokens, index, size, pitchTable, table, outsideTable, localeScopeIndex, err, prec + 1);
 
         if (rhs == NULL) {
             if (*err == 0) *err = 255;
@@ -622,7 +640,7 @@ ASTNode* parseExprRec(Token* tokens, int* index, int size, FunCallPitchTable& pi
     }
     return lhs;
 }
-ASTNode* parseExpression(Token* exp, int* index, int size, FunCallPitchTable& pitchTable, SymbolTable* table,
+ASTNode* parseExpression(Token* exp, int* index, int size, FunCallPitchTable& pitchTable, SymbolTable* table, std::vector<SymbolTable>& outsideTable, int localeScopeIndex,
                          int* err) noexcept {
 #ifdef HX_DEBUG
     log(L"\n---------分析表达式");
@@ -630,7 +648,7 @@ ASTNode* parseExpression(Token* exp, int* index, int size, FunCallPitchTable& pi
     if (!exp || !index || !err || !table) return NULL;
     *err = 0;
 
-    ASTNode* root = parseExprRec(exp, index, size, pitchTable, table, err, 0);
+    ASTNode* root = parseExprRec(exp, index, size, pitchTable, table, outsideTable, localeScopeIndex, err, 0);
     if (*err == 0 && root != NULL && *index < size) {
         if (exp[*index].type != TOK_END) {
             *err = 255;

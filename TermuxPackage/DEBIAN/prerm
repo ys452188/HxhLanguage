@@ -1,2 +1,2 @@
 #!/data/data/com.termux/files/usr/bin/sh
-echo "世界......遗忘我"
+echo "\33[31m世界......遗忘我\33[0m"
