@@ -184,9 +184,15 @@ IR_Program* generateIR(Tokens* tokens, int* err) {
         if (checkEachClass(program->classes[i], program, checkedClasses)) {
             setError(ERROR_UNCOMPLETED_CLASS, program->classes[i]->line, NULL);
             *err = 255;
+            free(program);
             return NULL;
         }
         program->classes[i]->size = getClassSize(program->classes[i], program);
+    }
+    *err = deduceFunctionReturnTypes(program);
+    if(*err) {
+        free(program);
+        return NULL;
     }
     return program;
 }

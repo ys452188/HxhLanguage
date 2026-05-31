@@ -1,6 +1,14 @@
 #ifndef HXHLANG_SRC_HXC_CHECKER_H
 #define HXHLANG_SRC_HXC_CHECKER_H
 #include <wchar.h>
+#include "IR.h"
+#include "SymbolTable.h"
+
+extern ASTNode* parseExpression(Token* exp, int* index, int size, FunCallPitchTable& pitchTable, SymbolTable* table, std::vector<SymbolTable>& outsideTable, int localeScopeIndex,
+                                int* err) noexcept;
+void freeAST(ASTNode* node) noexcept;
+inline IR_Class* getClassByName(const wchar_t* name, IR_Program* currentIRProgram);
+static int getVarIndex(const wchar_t* name, SymbolTable* table);
 /**
  * 在分析到新函数时检查函数是否重复定义，包含对错误的处理
  * @return 错误为-255，-1为未声明，否则为声明在表中的索引
@@ -56,6 +64,293 @@ int isClassRepeatDefine(IR_Class* cls, IR_Class** table, int table_size) {
             return 255;
         }
     }
+    return 0;
+}
+/*类型推导*/
+int deduceFunctionReturnTypes(IR_Program* program) {
+#ifdef HX_DEBUG
+    log(L"进行函数返回类型推导.....");
+#endif
+    if(!program) return -1;
+    for (int i = 0; i < program->functions.size(); i++) {
+        IR_Function* fun = program->functions[i];
+        // 已经知道类型
+        if (fun->isReturnTypeKnown || fun->body_token_count == 0) continue;
+        //简单记录变量
+        SymbolTable tempLocalScope = {};
+        tempLocalScope.fun = program->functions;
+        std::vector<SymbolTable> tempOutsideScopes;
+        tempOutsideScopes.push_back(tempLocalScope);
+
+        SymbolTable* tempLocalScopePtr = &(tempOutsideScopes.back());
+        FunCallPitchTable feckPitchTable;
+        int err = 0;
+        unsigned int blockNum = 0U;
+        //遍历一遍，查找ret和简单记录变量
+        for (int index = 1; index < fun->body_token_count-1; index++) {
+            Token& currentToken = fun->bodyTokens[index];
+
+            if (currentToken.type == TOK_OPR_LBRACE) {
+                SymbolTable newTempLocalScope = {};
+                newTempLocalScope.fun = program->functions;
+                tempOutsideScopes.push_back(newTempLocalScope);
+                tempLocalScopePtr = &(tempOutsideScopes.back());
+                blockNum++;
+            }
+            if(currentToken.type == TOK_OPR_RBRACE) {
+                blockNum--;
+                tempLocalScopePtr = &(tempOutsideScopes.at(blockNum));
+            }
+            if (wcscmp(currentToken.value, L"var") == 0) {  // var:id[:type][=exp];
+                Symbol newVar = {};
+                if (index + 1 >= fun->body_token_count) {
+                    setError(ERR_DEF_VAR, currentToken.line, NULL);
+                    return 255;
+                }
+                index++;  // 指向冒号
+                if (fun ->bodyTokens[index].type != TOK_OPR_COLON) {
+                    setError(ERR_DEF_VAR, currentToken.line, NULL);
+                    return 255;
+                }
+                if (index + 1 >= fun->body_token_count) {
+                    setError(ERR_DEF_VAR, currentToken.line, NULL);
+                    return 255;
+                }
+                index++;  // 指向标识符
+                if (fun->bodyTokens[index].type != TOK_ID) {
+                    setError(ERR_DEF_VAR, currentToken.line, NULL);
+                    return 255;
+                }
+                newVar.name = (wchar_t*)calloc(wcslen(fun->bodyTokens[index].value) + 1, sizeof(wchar_t));
+                if (!(newVar.name)) {
+                    return -1;
+                }
+                wcscpy(newVar.name, fun->bodyTokens[index].value);
+                // 检查变量唯一性
+                if (getVarIndex(newVar.name, tempLocalScopePtr) != -1) {
+                    setError(ERR_VAR_REPEATED, currentToken.line, NULL);
+                    return 255;
+                }
+                if (index + 1 >= fun->body_token_count) {
+                    setError(ERR_DEF_VAR, currentToken.line, NULL);
+                    return 255;
+                }
+                index++;  // 指向结束标志或:或=
+                if (fun->bodyTokens[index].type == TOK_OPR_COLON) {
+                    newVar.isTypeKnown = true;
+                    if (index + 1 >= fun->body_token_count) {
+                        setError(ERR_DEF_VAR, currentToken.line, NULL);
+                        return 255;
+                    }
+                    index++;  // 指向类型名
+                    if (fun->bodyTokens[index].type != TOK_ID && fun->bodyTokens[index].type != TOK_KW) {
+                        setError(ERR_DEF_VAR, currentToken.line, NULL);
+                        return 255;
+                    }
+                }
+                // 提前越界检查，仅检查
+                if (index + 1 >= fun->body_token_count) {
+                    setError(ERR_DEF_VAR, currentToken.line, NULL);
+                    return 255;
+                }
+                if (wcscmp(fun->bodyTokens[index].value, L"int") == 0 ||
+                        wcscmp(fun->bodyTokens[index].value, L"整型") == 0) {
+                    newVar.type.kind = IR_DT_INT;
+                    // int&
+                    if (fun->bodyTokens[index + 1].type == TOK_OPR_REFER) {
+                        newVar.type.kind = IR_DT_INT_REFER;
+                        index++;
+                        // int[]
+                    } else if (fun->bodyTokens[index + 1].type == TOK_OPR_LBRACKET) {
+                        if (index + 2 >= fun->body_token_count) {
+                            setError(ERR_TYPE, currentToken.line, NULL);
+                            return 255;
+                        }
+                        if (fun->bodyTokens[index + 2].type != TOK_OPR_RBRACKET) {
+                            setError(ERR_TYPE, currentToken.line, NULL);
+                            return 255;
+                        }
+                        newVar.type.kind = IR_DT_INT_ARR;
+                        index += 2;
+                    }
+                } else if (wcscmp(fun->bodyTokens[index].value, L"float") == 0 ||
+                           wcscmp(fun->bodyTokens[index].value, L"浮点型") == 0) {
+                    newVar.type.kind = IR_DT_FLOAT;
+                    if (fun->bodyTokens[index + 1].type == TOK_OPR_REFER) {
+                        newVar.type.kind = IR_DT_FLOAT_REFER;
+                        index++;
+                    } else if (fun->bodyTokens[index + 1].type == TOK_OPR_LBRACKET) {
+                        if (index + 2 >= fun->body_token_count) {
+                            setError(ERR_TYPE, currentToken.line, NULL);
+                            return 255;
+                        }
+                        if (fun->bodyTokens[index + 2].type != TOK_OPR_RBRACKET) {
+                            setError(ERR_TYPE, currentToken.line, NULL);
+                            return 255;
+                        }
+                        newVar.type.kind = IR_DT_FLOAT_ARR;
+                        index += 2;
+                    }
+                } else if (wcscmp(fun->bodyTokens[index].value, L"char") == 0 ||
+                           wcscmp(fun->bodyTokens[index].value, L"字符型") == 0) {
+                    newVar.type.kind = IR_DT_CHAR;
+                    if (fun->bodyTokens[index + 1].type == TOK_OPR_REFER) {
+                        newVar.type.kind = IR_DT_CHAR_REFER;
+                        index++;
+                    } else if (fun->bodyTokens[index + 1].type == TOK_OPR_LBRACKET) {
+                        if (index + 2 >= fun->body_token_count) {
+                            setError(ERR_TYPE, currentToken.line, NULL);
+                            return 255;
+                        }
+                        if (fun->bodyTokens[index + 2].type != TOK_OPR_RBRACKET) {
+                            setError(ERR_TYPE, currentToken.line, NULL);
+                            return 255;
+                        }
+                        newVar.type.kind = IR_DT_CHAR_ARR;
+                        index += 2;
+                    }
+                } else if (wcscmp(fun->bodyTokens[index].value, L"str") == 0 ||
+                           wcscmp(fun->bodyTokens[index].value, L"字符串型") == 0) {
+                    newVar.type.kind = IR_DT_STRING;
+                    if (fun->bodyTokens[index + 1].type == TOK_OPR_REFER) {
+                        newVar.type.kind = IR_DT_STRING_REFER;
+                        index++;
+                    } else if (fun->bodyTokens[index + 1].type == TOK_OPR_LBRACKET) {
+                        if (index + 2 >= fun->body_token_count) {
+                            setError(ERR_TYPE, currentToken.line, NULL);
+                            return 255;
+                        }
+                        if (fun->bodyTokens[index + 2].type != TOK_OPR_RBRACKET) {
+                            setError(ERR_TYPE, currentToken.line, NULL);
+                            return 255;
+                        }
+                        newVar.type.kind = IR_DT_STRING_ARR;
+                        index += 2;
+                    }
+                }
+                if (fun->bodyTokens[index].type == TOK_ID) {
+                    newVar.type.kind = IR_DT_CUSTOM;
+                    if (getClassByName(fun->bodyTokens[index].value, program) == NULL) {
+                        setError(ERR_UNKNOWN_TYPE, fun->bodyTokens[index].line, fun->bodyTokens[index].value);
+                        return 255;
+                    }
+                    newVar.type.customTypeName = (wchar_t*)calloc(wcslen(fun->bodyTokens[index].value) + 1, sizeof(wchar_t));
+                    if (!(newVar.type.customTypeName)) {
+                        return -1;
+                    }
+                    wcscpy(newVar.type.customTypeName, fun->bodyTokens[index].value);
+                    if (fun->bodyTokens[index + 1].type == TOK_OPR_REFER) {
+                        newVar.type.kind = IR_DT_CUSTOM_REFER;
+                        index++;
+                    } else if (fun->bodyTokens[index + 1].type == TOK_OPR_LBRACKET) {
+                        if (index + 2 >= fun->body_token_count) {
+                            setError(ERR_TYPE, currentToken.line, NULL);
+                            return 255;
+                        }
+                        if (fun->bodyTokens[index + 2].type != TOK_OPR_RBRACKET) {
+                            setError(ERR_TYPE, currentToken.line, NULL);
+                            return 255;
+                        }
+                        newVar.type.kind = IR_DT_CUSTOM_ARR;
+                        index += 2;
+                    }
+                }
+                tempLocalScopePtr->vars.push_back(newVar);
+            } else if (wcscmp(currentToken.value, L"ret") == 0 || wcscmp(currentToken.value, L"返回") == 0) {
+                if (index + 1 >= fun->body_token_count) {
+                    setError(ERR_RET, currentToken.line, NULL);
+                    return 255;
+                }
+                index++;  // 指向冒号
+                if (fun->bodyTokens[index].type == TOK_END) {
+                    // 无返回值
+                    fun->isReturnTypeKnown = true;
+                    fun->returnType.kind = IR_DT_VOID;
+                    return 0;
+                }
+                //:
+                if (fun->bodyTokens[index].type != TOK_OPR_COLON) {
+                    setError(ERR_RET, currentToken.line, NULL);
+                    return 255;
+                }
+                index++;  // 指向表达式起始位置
+                ASTNode* expNode =
+                    parseExpression(fun->bodyTokens, &index, fun->body_token_count, feckPitchTable, &tempLocalScope, tempOutsideScopes, blockNum, &err);
+                fun->isReturnTypeKnown = true;
+                fun->returnType = expNode->resultType;
+                if (err != 0 || !expNode) {
+                    return 255;
+                }
+                index++;
+                if (fun->bodyTokens[index].type != TOK_END) {
+                    setError(ERR_RET, currentToken.line, NULL);
+                    freeAST(expNode);
+                    return 255;
+                }
+                freeAST(expNode);
+            }
+        }
+        // 扫完了还是没找到ret，默认是void
+        if (!fun->isReturnTypeKnown) {
+            fun->returnType.kind = IR_DT_VOID;
+            fun->isReturnTypeKnown = true;
+        }
+#ifdef HX_DEBUG
+        switch(fun->returnType.kind) {
+        case IR_DT_VOID:
+            log(L"类型推导：%ls -> %ls", fun->name, L"void");
+            break;
+        case IR_DT_INT:
+            log(L"类型推导：%ls -> %ls", fun->name, L"int");
+            break;
+        case IR_DT_INT_ARR:
+            log(L"类型推导：%ls -> %ls", fun->name, L"int[]");
+            break;
+        case IR_DT_INT_REFER:
+            log(L"类型推导：%ls -> %ls", fun->name, L"int&");
+            break;
+        case IR_DT_CHAR:
+            log(L"类型推导：%ls -> %ls", fun->name, L"char");
+            break;
+        case IR_DT_CHAR_ARR:
+            log(L"类型推导：%ls -> %ls", fun->name, L"char[]");
+            break;
+        case IR_DT_CHAR_REFER:
+            log(L"类型推导：%ls -> %ls", fun->name, L"char&");
+            break;
+        case IR_DT_FLOAT:
+            log(L"类型推导：%ls -> %ls", fun->name, L"float");
+            break;
+        case IR_DT_FLOAT_ARR:
+            log(L"类型推导：%ls -> %ls", fun->name, L"float[]");
+            break;
+        case IR_DT_FLOAT_REFER:
+            log(L"类型推导：%ls -> %ls", fun->name, L"float&");
+            break;
+        case IR_DT_STRING:
+            log(L"类型推导：%ls -> %ls", fun->name, L"str");
+            break;
+        case IR_DT_STRING_ARR:
+            log(L"类型推导：%ls -> %ls", fun->name, L"str[]");
+            break;
+        case IR_DT_STRING_REFER:
+            log(L"类型推导：%ls -> %ls", fun->name, L"str&");
+            break;
+        case IR_DT_CUSTOM:
+            log(L"类型推导：%ls -> %ls", fun->name, fun->returnType.customTypeName);
+            break;
+        case IR_DT_CUSTOM_ARR:
+            log(L"类型推导：%ls -> %ls[]", fun->name, fun->returnType.customTypeName);
+            break;
+        case IR_DT_CUSTOM_REFER:
+            log(L"类型推导：%ls -> %ls&", fun->name, fun->returnType.customTypeName);
+            break;
+        }
+#endif
+    }
+#ifdef HX_DEBUG
+    log(L"进行函数返回类型推导->完成\n");
+#endif
     return 0;
 }
 #endif

@@ -30,10 +30,9 @@ endif()
 
 if(HX_DEBUG STREQUAL "ON")
     set(HX_DEBUG_MACRO 1) 
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-        add_compile_options(-fsanitize=address)
+   
         add_compile_options(-g)
-        add_link_options(-fsanitize=address)
+        
     endif()    
 else()
     unset(HX_DEBUG_MACRO) 

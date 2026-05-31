@@ -10,47 +10,6 @@
 #include "Lexer.h"
 #include "SymbolTable.h"
 
-enum NodeKind { NODE_VALUE, NODE_VAR, NODE_UNARY, NODE_BINARY, NODE_FUN_CALL };
-typedef struct ASTNode {
-    IR_DataType resultType;
-    NodeKind kind;
-    Opcode typeCast;  // 标记：类型转换
-    union {
-        struct {
-            IR_DataType type;
-            union {
-                double f;
-                int32_t i;
-                wchar_t* s;
-                uint16_t c;
-            } val;
-        } value;
-        struct {
-            wchar_t* name;
-            int index;
-            int blockIndex;
-            IR_DataType type;
-        } var;
-        struct {
-            int op;
-        } unary;  // NEG, POS
-        struct {
-            int op;
-            wchar_t* varName;   //mov需要
-        } binary;  // ADD, SUB, MUL, DIV, MOV, STRING_CONCAT
-        struct {
-            wchar_t* name;
-            FunCallPitch* pitch;
-            IR_DataType ret_type;
-            struct ASTNode** args;
-            uint32_t arg_count;
-        } funCall;
-    } data;
-    struct ASTNode* left;
-    struct ASTNode* right;
-    Token* token;  // 用于错误定位
-} ASTNode;
-
 #ifdef HX_DEBUG
 // 递归往下找树枝的辅助函数
 static void printAstNode(ASTNode* node, int level) {

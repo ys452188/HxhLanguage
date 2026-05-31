@@ -659,7 +659,6 @@ static int generateStatement(int& index, FunCallPitchTable& pitchTable, Constant
             index++;
         }
 
-        index++;  //跳过结尾的  }
 #ifdef HX_DEBUG
         log(L"========离开块------");
 #endif
@@ -788,8 +787,14 @@ static int generateStatement(int& index, FunCallPitchTable& pitchTable, Constant
         generateInstructionsFromAST(proc->instructions, &inst_index, &inst_size, expNode, constantPool, outsideScopes,
                                     procIndex, err);
         if (expNode->kind == NODE_FUN_CALL) {
+            #ifdef HX_DEBUG
+                log(L"分析表达式->调用函数");
+                #endif
             // 有返回值要手动弹出
             if (expNode->data.funCall.ret_type.kind != IR_DT_VOID) {
+                #ifdef HX_DEBUG
+                log(L"手动弹出返回值");
+                #endif
                 Instruction popInst = {};
                 popInst.opcode = OP_POP;
                 proc->instructions.push_back(popInst);
@@ -801,7 +806,8 @@ static int generateStatement(int& index, FunCallPitchTable& pitchTable, Constant
             freeAST(expNode);
             return 255;
         }
-        proc->instructionSize = inst_index;
+        inst_index++;
+        proc->instructionSize = proc->instructions.size();
         freeAST(expNode);
     } else if (wcscmp(currentToken.value, L"var") == 0) {  // var:id[:type][=exp];
         Symbol newVar = {};
@@ -848,14 +854,6 @@ static int generateStatement(int& index, FunCallPitchTable& pitchTable, Constant
             setError(ERR_VAR_REPEATED, currentToken.line, NULL);
             delete (proc);
             return 255;
-        }
-        for (int i = 0; i < outsideScopes.size(); i++) {
-            if (getVarIndex(newVar.name, &outsideScopes.at(i)) != -1) {
-                *err = 255;
-                setError(ERR_VAR_REPEATED, currentToken.line, NULL);
-                delete (proc);
-                return 255;
-            }
         }
         if (index + 1 >= function->body_token_count) {
             setError(ERR_DEF_VAR, currentToken.line, NULL);

@@ -1,6 +1,7 @@
 #pragma once
 typedef struct Instruction Instruction;
 typedef struct Token Token;
+typedef uint8_t Opcode;
 typedef enum IR_DataTypeKind {
     IR_DT_INT,
     IR_DT_FLOAT,
@@ -145,7 +146,7 @@ typedef struct SymbolTable {
 } SymbolTable;
 class FunCallPitch {  // 回填CALL指令,被指向
 public:
-    FunCallPitch(IR_Function* ir_fun) noexcept : fun(ir_fun) {}
+    FunCallPitch(IR_Function* ir_fun) noexcept : fun(ir_fun), index(-1) {}
     IR_Function* fun;
     int index;
 };
@@ -180,3 +181,43 @@ public:
         }
     }
 };
+enum NodeKind { NODE_VALUE, NODE_VAR, NODE_UNARY, NODE_BINARY, NODE_FUN_CALL };
+typedef struct ASTNode {
+    IR_DataType resultType;
+    NodeKind kind;
+    Opcode typeCast;  // 标记：类型转换
+    union {
+        struct {
+            IR_DataType type;
+            union {
+                double f;
+                int32_t i;
+                wchar_t* s;
+                uint16_t c;
+            } val;
+        } value;
+        struct {
+            wchar_t* name;
+            int index;
+            int blockIndex;
+            IR_DataType type;
+        } var;
+        struct {
+            int op;
+        } unary;  // NEG, POS
+        struct {
+            int op;
+            wchar_t* varName;   //mov需要
+        } binary;  // ADD, SUB, MUL, DIV, MOV, STRING_CONCAT
+        struct {
+            wchar_t* name;
+            FunCallPitch* pitch;
+            IR_DataType ret_type;
+            struct ASTNode** args;
+            uint32_t arg_count;
+        } funCall;
+    } data;
+    struct ASTNode* left;
+    struct ASTNode* right;
+    Token* token;  // 用于错误定位
+} ASTNode;
