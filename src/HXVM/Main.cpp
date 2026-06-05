@@ -89,6 +89,7 @@ int main(int argc, char** argv) {
         fwprintf(errorStream, ERR_LABEL L"寄！运行时发生异常！共存活%lfs\n", (double)(end - start) / CLOCKS_PER_SEC);
         return -1;
     }
+
     freeObjectCode(objCode);
 
     end = clock();

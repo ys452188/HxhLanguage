@@ -20,10 +20,10 @@ class: A->D {
     新变量 = 114。
     
     var:newVar1:int。
-    repeat-> {
+    # repeat-> {
         f();
         __hx_write_string__ "Hello, HxHLanguage!\n"。
-    }
+    # }
     //g();
     返回：0。  
 }

@@ -41,8 +41,11 @@ public:
 #ifdef HX_DEBUG
             wprintf(LOG_LABEL L"释放内存 %p\n", this->heapMemoryBlocks[freeableMemIndex[i]]);
 #endif
-            free(this->heapMemoryBlocks[freeableMemIndex[i]]);
+            if(this->heapMemoryBlocks[freeableMemIndex[i]]) free(this->heapMemoryBlocks[freeableMemIndex[i]]);
             this->heapMemoryBlocks[freeableMemIndex[i]] = NULL;
+        }
+        while(!freeableMemIndex.empty()) {
+            freeableMemIndex.pop_back();
         }
     }
     ~HxMemoryAllocer() {
@@ -100,17 +103,18 @@ typedef struct CallFrame {  // 栈帧
     Procedure* proc;
     int instIndex;  // 解释到哪了
     char* stack;
-    int dataPtr;  // 指stack
-    HxVector<Symbol> localSymbol;
 } CallFrame;
 // 栈帧压栈
-inline static int pushCallFrame(Procedure& proc, HxVector<CallFrame>& frames) {
-    CallFrame frame = {&proc, 0, (char*)(memoryAllocer.hxMalloc(proc.stackSize))};
-    if (frame.stack == NULL && proc.stackSize != 0) {
+inline static int pushCallFrame(Procedure& proc, HxVector<CallFrame*>& frames) {
+    CallFrame* frame = (CallFrame*)memoryAllocer.hxMalloc(sizeof(CallFrame));
+    if(frame == NULL) return -1;
+    frame->proc = &proc;
+    frame->stack = (char*)(memoryAllocer.hxMalloc(proc.stackSize));
+    frame->instIndex = 0;
+    if (frame->stack == NULL && proc.stackSize != 0) {
         fwprintf(errorStream, ERR_LABEL "内存分配失败！\n");
         return -1;
     }
-    frame.localSymbol.reserve(proc.localVarSize);
     frames.push_back(frame);
     return 0;
 }
@@ -137,8 +141,8 @@ typedef struct Symbol {
     void* address;
 } Symbol;
 
-inline static int interpretInstruction(Instruction& inst, OpStack& opStack, char*& stack, int& usedStackSize, ObjectCode& obj,
-                                       int& instIndex, int& frameTop, HxVector<CallFrame>& frames);
+inline static int interpretInstruction(Instruction& inst, OpStack& opStack, char*& stack, ObjectCode& obj,
+                                       int& instIndex, int& frameTop, HxVector<CallFrame*>& frames);
 int interpret(ObjectCode& obj, int& ret, int& err) noexcept {
 #ifdef HX_DEBUG
     wprintf(LOG_LABEL L"开始解释\n");
@@ -150,15 +154,15 @@ int interpret(ObjectCode& obj, int& ret, int& err) noexcept {
         return -1;
     }
     Procedure& entry = obj.procedures[(obj.start)];
-    HxVector<CallFrame> frames;
+    HxVector<CallFrame*> frames;
     frames.reserve(512);
     int frameTop = 0;
     if (pushCallFrame(entry, frames) != 0) return -1;
     OpStack opStack = {};
 
     while (!frames.empty() && (!shouldExit.load())) {
-        if (interpretInstruction(frames[(frameTop)].proc->instructions[(frames[(frameTop)].instIndex)], opStack,
-                                 frames[(frameTop)].stack, frames[(frameTop)].dataPtr, obj, frames[(frameTop)].instIndex,
+        if (interpretInstruction(frames[(frameTop)]->proc->instructions[(frames[(frameTop)]->instIndex)], opStack,
+                                 frames[(frameTop)]->stack, obj, frames[(frameTop)]->instIndex,
                                  frameTop, frames))
             return -1;
     }
@@ -231,8 +235,8 @@ static inline int promoteNumeric(_OpStack& a, _OpStack& b) {
     return 0;
 }
 
-inline int interpretInstruction(Instruction& inst, OpStack& opStack, char*& stack, int& stackTop, ObjectCode& obj,
-                                int& instIndex, int& frameTop, HxVector<CallFrame>& frames) {
+inline int interpretInstruction(Instruction& inst, OpStack& opStack, char*& stack, ObjectCode& obj,
+                                int& instIndex, int& frameTop, HxVector<CallFrame*>& frames) {
 #ifdef HX_DEBUG
     // wprintf(LOG_LABEL L"__________________________________________\n");
 #endif
@@ -428,7 +432,7 @@ inline int interpretInstruction(Instruction& inst, OpStack& opStack, char*& stac
         memcpy(&procAddr, inst.params[0].value, sizeof(int32_t));
         Procedure& proc = (obj.procedures[(procAddr)]);
         if (opStack.top < argCount) {
-            fwprintf(errorStream, ERR_LABEL L"参数不够\n");
+            fwprintf(errorStream, ERR_LABEL L"参数不够喵~\n");
             return -1;
         }
 
@@ -436,12 +440,13 @@ inline int interpretInstruction(Instruction& inst, OpStack& opStack, char*& stac
         if (pushCallFrame(proc, frames) != 0) return -1;
         frameTop++;
 
-        int localSymbolTop = argCount - 1;
-        for (int i = opStack.top - 1; i >= opStack.top - argCount; i--) {
-            frames[(frameTop)].localSymbol[localSymbolTop--].type = opStack.opStack[i].type;
-            frames[(frameTop)].dataPtr += opStack.opStack[i].size;
+        uint32_t currentParamOffset = 0; // 从子函数栈底偏移0开始铺参数
+        for (int i = opStack.top - argCount; i < opStack.top; i++) {
+            memcpy(frames[frameTop]->stack + currentParamOffset, opStack.opStack[i].value, opStack.opStack[i].size);
+            currentParamOffset += opStack.opStack[i].size; // 铺完一个，挪动指针
         }
-        frames[frameTop - 1].instIndex++;
+        opStack.top -= argCount; //弹出参数
+        frames[frameTop - 1]->instIndex++;
         return 0;
         break;
     }
@@ -456,7 +461,8 @@ inline int interpretInstruction(Instruction& inst, OpStack& opStack, char*& stac
 #ifdef HX_DEBUG
         wprintf(LOG_LABEL L"__________________________________________\n");
 #endif
-        memoryAllocer.markFreeable((void*)frames[frameTop].stack);
+        memoryAllocer.markFreeable((void*)frames[frameTop]->stack);
+        memoryAllocer.markFreeable((void*)frames[frameTop]);
         frames.pop_back();
         frameTop--;
         return 0;
@@ -672,7 +678,7 @@ inline int interpretInstruction(Instruction& inst, OpStack& opStack, char*& stac
 #ifdef HX_DEBUG
     wprintf(LOG_LABEL L"__________________________________________\n");
 #endif
-    frames[(frameTop)].instIndex++;
+    frames[(frameTop)]->instIndex++;
     return 0;
 }
 #endif
