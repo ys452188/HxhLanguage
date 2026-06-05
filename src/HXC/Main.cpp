@@ -41,7 +41,7 @@ int main(int argc, char* argv[]) {
         }
         */
         std::string path = "";
-        std::string objPath = "";
+        std::string objPath = "out.hxo";
 #ifdef HX_DEBUG
         path = "../test/test.hxl";
         objPath = "../test/out.hxo";
@@ -86,7 +86,7 @@ int main(int argc, char* argv[]) {
             return 255;
         } else if (lexerError == -1) {
             fwprintf(errorStream, L"\33[31m[ERR]\33[0m内存分配失败！\n");
-            freeTokens(&tokens);
+            freeTokens(&tokens);	
             return -1;
         }
         free(src);

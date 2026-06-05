@@ -29,11 +29,7 @@ else()
 endif()
 
 if(HX_DEBUG STREQUAL "ON")
-    set(HX_DEBUG_MACRO 1) 
-   
-        add_compile_options(-g)
-        
-    endif()    
+    set(HX_DEBUG_MACRO 1)
 else()
     unset(HX_DEBUG_MACRO) 
 endif()
