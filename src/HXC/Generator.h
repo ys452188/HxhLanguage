@@ -327,226 +327,134 @@ ObjectCode* generateObjectCode(IR_Program* program, int* err) {
 #endif
     // 将从未使用过的变量对应的指标记为无用  & 处理指令里变量的偏移量 &
     // 更新OP_JMP地址
-    if (!isInDebugMode) {
-        for (int i = 0; i < symbols.size(); i++) {
-            std::vector<SymbolTable>& funTable = symbols.at(i);
-            for (int j = 0; j < funTable.size(); j++) {
-                SymbolTable& blockTable = funTable.at(j);
-                for (int n = 0; n < blockTable.vars.size(); n++) {
-#ifdef HX_DEBUG
-                    log(L"\n变量%ls相关指令数量：%d", blockTable.vars.at(n).name, blockTable.vars.at(n).instIndex.size());
-#endif
-                    for (int m = 0; m < blockTable.vars.at(n).instIndex.size(); m++) {
-                        switch (objCode->procedures.at(blockTable.vars.at(n).procIndex)
-                                ->instructions[blockTable.vars.at(n).instIndex.at(m)]
-                                .opcode) {
-                        case OP_LOAD_VAR: {
-#ifdef HX_DEBUG
-                            log(L"========"
-                                L"处理LOAD_VAR偏移"
-                                L"量及大小");
-#endif
-                            uint32_t index = 0;
-                            memcpy(&index,
-                                   objCode->procedures.at(blockTable.vars.at(n).procIndex)
-                                   ->instructions[blockTable.vars.at(n).instIndex.at(m)]
-                                   .params[0]
-                                   .value,
-                                   sizeof(uint32_t));
-                            if (n != index) continue;
-                            uint32_t offest = blockTable.vars.at(n).offest;
-                            int32_t _size = blockTable.vars.at(n).size;
-                            uint32_t size = (uint32_t)_size;
-                            if (_size <= 0) {
-                                size = blockTable.vars.at(n).size;
-                            }
-#ifdef HX_DEBUG
-                            log(L"offest = "
-                                L"%ud, "
-                                L"size = "
-                                L"%ud",
-                                offest, size);
-#endif
-                            memcpy(objCode->procedures.at(blockTable.vars.at(n).procIndex)
-                                   ->instructions[blockTable.vars.at(n).instIndex.at(m)]
-                                   .params[0]
-                                   .value,
-                                   &offest, sizeof(uint32_t));
-                            memcpy(objCode->procedures.at(blockTable.vars.at(n).procIndex)
-                                   ->instructions[blockTable.vars.at(n).instIndex.at(m)]
-                                   .params[1]
-                                   .value,
-                                   &size, sizeof(uint32_t));
-                        }
-                        break;
-                        case OP_STORE_VAR: {
-                            // OP_STORE_VAR
-                            // <offest>
-                            // <copySize>
-#ifdef HX_DEBUG
-                            log(L"========"
-                                L"处理STORE_VAR偏移"
-                                L"量");
-#endif
-                            uint32_t offest = blockTable.vars.at(n).offest;
-                            int32_t _size = blockTable.vars.at(n).size;
-                            uint32_t size = (uint32_t)_size;
-                            if (_size <= 0) {
-                                size = blockTable.vars.at(n).size;
-                            }
-#ifdef HX_DEBUG
-                            log(L"处理STORE_VAR-> offest = "
-                                L"%u, size "
-                                L"= %u",
-                                offest, size);
-#endif
-                            memcpy(objCode->procedures.at(blockTable.vars.at(n).procIndex)
-                                   ->instructions[blockTable.vars.at(n).instIndex.at(m)]
-                                   .params[0]
-                                   .value,
-                                   &offest, sizeof(uint32_t));
-                            memcpy(objCode->procedures.at(blockTable.vars.at(n).procIndex)
-                                   ->instructions[blockTable.vars.at(n).instIndex.at(m)]
-                                   .params[1]
-                                   .value,
-                                   &size, sizeof(uint32_t));
-                        }
-                        break;
-                        }
-                    }
-                    if (!blockTable.vars.at(n).isUsed) {
-                        for (int m = 0; m < blockTable.vars.at(n).instIndex.size(); m++) {
-                            objCode->procedures.at(blockTable.vars.at(n).procIndex)
-                            ->instructions[blockTable.vars.at(n).instIndex.at(m)]
-                            .isNotUsed = true;
-                            for (int instIndex = blockTable.vars.at(n).instIndex.at(m);
-                                    instIndex < objCode->procedures.at(blockTable.vars.at(n).procIndex)->instructions.size();
-                                    instIndex++) {
-                                if (objCode->procedures.at(blockTable.vars.at(n).procIndex)
-                                        ->instructions.at(instIndex)
-                                        .opcode == OP_JMP) {
-#ifdef HX_DEBUG
-                                    log(L"更新OP_JMP(第%u指令)", instIndex);
-#endif
-                                    uint32_t jmpAddr = 0;
-                                    memcpy(&jmpAddr,
-                                           (objCode->procedures.at(blockTable.vars.at(n).procIndex)
-                                            ->instructions.at(instIndex)
-                                            .params[0])
-                                           .value,
-                                           sizeof(uint32_t));
-                                    jmpAddr -= 1;
-                                    memcpy((objCode->procedures.at(blockTable.vars.at(n).procIndex)
-                                            ->instructions.at(instIndex)
-                                            .params[0])
-                                           .value,
-                                           &jmpAddr, sizeof(uint32_t));
-                                }
-                            }
-                        }
-#ifdef HX_DEBUG
-                        log(L"已将变量“%ls”设为无用", blockTable.vars.at(n).name);
-#endif
-                        if (!isInDebugMode) {
-                            objCode->procedures.at(blockTable.vars.at(n).procIndex)->stackSize =
-                                objCode->procedures.at(blockTable.vars.at(n).procIndex)->stackSize -
-                                getVarSize(blockTable.vars.at(n).type, program->classes, program->class_count);
-                            objCode->procedures.at(blockTable.vars.at(n).procIndex)->localVarSize--;
 
-                            for (int m = n; m < blockTable.vars.size(); m++) {
-                                blockTable.vars.at(m).offest -= blockTable.vars.at(n).size;
-                            }
+    for (int i = 0; i < symbols.size(); i++) {
+        std::vector<SymbolTable>& funTable = symbols.at(i);
+        for (int j = 0; j < funTable.size(); j++) {
+            SymbolTable& blockTable = funTable.at(j);
+            for (int n = 0; n < blockTable.vars.size(); n++) {
+#ifdef HX_DEBUG
+                log(L"\n变量%ls相关指令数量：%d", blockTable.vars.at(n).name, blockTable.vars.at(n).instIndex.size());
+#endif
+                objCode->procedures.at(blockTable.vars.at(n).procIndex)
+                ->stackSize += blockTable.vars.at(n).size;
+                for (int m = 0; m < blockTable.vars.at(n).instIndex.size(); m++) {
+                    switch (objCode->procedures.at(blockTable.vars.at(n).procIndex)
+                            ->instructions[blockTable.vars.at(n).instIndex.at(m)]
+                            .opcode) {
+                    case OP_LOAD_VAR: {
+#ifdef HX_DEBUG
+                        log(L"========"
+                            L"处理LOAD_VAR偏移"
+                            L"量及大小");
+#endif
+                        uint32_t index = 0;
+                        memcpy(&index,
+                               objCode->procedures.at(blockTable.vars.at(n).procIndex)
+                               ->instructions[blockTable.vars.at(n).instIndex.at(m)]
+                               .params[0]
+                               .value,
+                               sizeof(uint32_t));
+                        if (n != index) continue;
+                        uint32_t offest = blockTable.vars.at(n).offest;
+                        int32_t _size = blockTable.vars.at(n).size;
+                        uint32_t size = (uint32_t)_size;
+                        if (_size <= 0) {
+                            size = blockTable.vars.at(n).size;
                         }
+#ifdef HX_DEBUG
+                        log(L"offest = "
+                            L"%ud, "
+                            L"size = "
+                            L"%ud",
+                            offest, size);
+#endif
+                        memcpy(objCode->procedures.at(blockTable.vars.at(n).procIndex)
+                               ->instructions[blockTable.vars.at(n).instIndex.at(m)]
+                               .params[0]
+                               .value,
+                               &offest, sizeof(uint32_t));
+                        memcpy(objCode->procedures.at(blockTable.vars.at(n).procIndex)
+                               ->instructions[blockTable.vars.at(n).instIndex.at(m)]
+                               .params[1]
+                               .value,
+                               &size, sizeof(uint32_t));
+                    }
+                    break;
+                    case OP_STORE_VAR: {
+                        // OP_STORE_VAR
+                        // <offest>
+                        // <copySize>
+#ifdef HX_DEBUG
+                        log(L"========"
+                            L"处理STORE_VAR偏移"
+                            L"量");
+#endif
+                        uint32_t offest = blockTable.vars.at(n).offest;
+                        int32_t _size = blockTable.vars.at(n).size;
+                        uint32_t size = (uint32_t)_size;
+                        if (_size <= 0) {
+                            size = blockTable.vars.at(n).size;
+                        }
+#ifdef HX_DEBUG
+                        log(L"处理STORE_VAR-> offest = "
+                            L"%u, size "
+                            L"= %u",
+                            offest, size);
+#endif
+                        memcpy(objCode->procedures.at(blockTable.vars.at(n).procIndex)
+                               ->instructions[blockTable.vars.at(n).instIndex.at(m)]
+                               .params[0]
+                               .value,
+                               &offest, sizeof(uint32_t));
+                        memcpy(objCode->procedures.at(blockTable.vars.at(n).procIndex)
+                               ->instructions[blockTable.vars.at(n).instIndex.at(m)]
+                               .params[1]
+                               .value,
+                               &size, sizeof(uint32_t));
+                    }
+                    break;
                     }
                 }
-            }
-        }
-    } else {
-        for (int i = 0; i < symbols.size(); i++) {
-            std::vector<SymbolTable>& funTable = symbols.at(i);
-            for (int j = 0; j < funTable.size(); j++) {
-                SymbolTable& blockTable = funTable.at(j);
-                for (int n = 0; n < blockTable.vars.size(); n++) {
-#ifdef HX_DEBUG
-                    log(L"\n变量%ls相关指令数量：%d", blockTable.vars.at(n).name, blockTable.vars.at(n).instIndex.size());
-#endif
+                if (!blockTable.vars.at(n).isUsed) {
                     for (int m = 0; m < blockTable.vars.at(n).instIndex.size(); m++) {
-                        switch (objCode->procedures.at(blockTable.vars.at(n).procIndex)
-                                ->instructions[blockTable.vars.at(n).instIndex.at(m)]
-                                .opcode) {
-                        case OP_LOAD_VAR: {
+                        objCode->procedures.at(blockTable.vars.at(n).procIndex)
+                        ->instructions[blockTable.vars.at(n).instIndex.at(m)]
+                        .isNotUsed = true;
+                        for (int instIndex = blockTable.vars.at(n).instIndex.at(m);
+                                instIndex < objCode->procedures.at(blockTable.vars.at(n).procIndex)->instructions.size();
+                                instIndex++) {
+                            if (objCode->procedures.at(blockTable.vars.at(n).procIndex)
+                                    ->instructions.at(instIndex)
+                                    .opcode == OP_JMP) {
 #ifdef HX_DEBUG
-                            log(L"========"
-                                L"处理LOAD_VAR偏移"
-                                L"量及大小");
+                                log(L"更新OP_JMP(第%u指令)", instIndex);
 #endif
-                            uint32_t index = 0;
-                            memcpy(&index,
-                                   objCode->procedures.at(blockTable.vars.at(n).procIndex)
-                                   ->instructions[blockTable.vars.at(n).instIndex.at(m)]
-                                   .params[0]
-                                   .value,
-                                   sizeof(uint32_t));
-                            if (n != index) continue;
-                            uint32_t offest = blockTable.vars.at(n).offest;
-                            int32_t _size = blockTable.vars.at(n).size;
-                            uint32_t size = (uint32_t)_size;
-                            if (_size <= 0) {
-                                size = blockTable.vars.at(n).size;
+                                uint32_t jmpAddr = 0;
+                                memcpy(&jmpAddr,
+                                       (objCode->procedures.at(blockTable.vars.at(n).procIndex)
+                                        ->instructions.at(instIndex)
+                                        .params[0])
+                                       .value,
+                                       sizeof(uint32_t));
+                                jmpAddr -= 1;
+                                memcpy((objCode->procedures.at(blockTable.vars.at(n).procIndex)
+                                        ->instructions.at(instIndex)
+                                        .params[0])
+                                       .value,
+                                       &jmpAddr, sizeof(uint32_t));
                             }
-#ifdef HX_DEBUG
-                            log(L"offest = "
-                                L"%u, "
-                                L"size = "
-                                L"%u",
-                                offest, size);
-#endif
-                            memcpy(objCode->procedures.at(blockTable.vars.at(n).procIndex)
-                                   ->instructions[blockTable.vars.at(n).instIndex.at(m)]
-                                   .params[0]
-                                   .value,
-                                   &offest, sizeof(uint32_t));
-                            memcpy(objCode->procedures.at(blockTable.vars.at(n).procIndex)
-                                   ->instructions[blockTable.vars.at(n).instIndex.at(m)]
-                                   .params[1]
-                                   .value,
-                                   &size, sizeof(uint32_t));
                         }
-                        break;
-                        case OP_STORE_VAR: {
-                            // OP_STORE_VAR
-                            // <offest>
-                            // <copySize>
+                    }
 #ifdef HX_DEBUG
-                            log(L"========"
-                                L"处理STORE_VAR偏移"
-                                L"量");
+                    log(L"已将变量“%ls”设为无用", blockTable.vars.at(n).name);
 #endif
-                            uint32_t offest = blockTable.vars.at(n).offest;
-                            int32_t _size = blockTable.vars.at(n).size;
-                            uint32_t size = (uint32_t)_size;
-                            if (_size <= 0) {
-                                size = blockTable.vars.at(n).size;
-                            }
-#ifdef HX_DEBUG
-                            log(L"处理STORE_VAR-> offest = "
-                                L"%u, size "
-                                L"= %u",
-                                offest, size);
-#endif
-                            memcpy(objCode->procedures.at(blockTable.vars.at(n).procIndex)
-                                   ->instructions[blockTable.vars.at(n).instIndex.at(m)]
-                                   .params[0]
-                                   .value,
-                                   &offest, sizeof(uint32_t));
-                            memcpy(objCode->procedures.at(blockTable.vars.at(n).procIndex)
-                                   ->instructions[blockTable.vars.at(n).instIndex.at(m)]
-                                   .params[1]
-                                   .value,
-                                   &size, sizeof(uint32_t));
-                        }
-                        break;
-                        }
+                    objCode->procedures.at(blockTable.vars.at(n).procIndex)->stackSize =
+                        objCode->procedures.at(blockTable.vars.at(n).procIndex)->stackSize -
+                        getVarSize(blockTable.vars.at(n).type, program->classes, program->class_count);
+
+                    for (int m = n; m < blockTable.vars.size(); m++) {
+                        blockTable.vars.at(m).offest -= blockTable.vars.at(n).size;
                     }
                 }
             }
@@ -581,7 +489,8 @@ static int getVarSize(IR_DataType type, IR_Class** class_table, int class_table_
     case IR_DT_BOOL:
         return sizeof(bool);
     case IR_DT_CUSTOM:
-        return (class_table)[getClassIndexByName(type.customTypeName, class_table, class_table_size)]->size;
+        return 4;    //void*
+    //(class_table)[getClassIndexByName(type.customTypeName, class_table, class_table_size)]->size;
     default:
         return 8;
     }
@@ -608,14 +517,34 @@ Procedure* generateFunction(int procIndex, IR_Function* function, IR_Program* cu
     if (function->body_token_count == 0 || !function->bodyTokens) {
         // 空函数体
         proc->instructionSize = 0;
-        proc->localVarSize = 0;
         proc->stackSize = 0;
         return proc;
     }
     int index = 1;   //跳过 {
+    uint32_t localVarSize = 0;
     SymbolTable localeSymbolTable = {};
     // 填充函数表
     localeSymbolTable.fun = all_functions;
+    //正序填入参数
+    if(function->paramCount > 0 && function->params != NULL) {
+#ifdef HX_DEBUG
+        log(L"填入参数");
+#endif
+        for(int i = 0; i < function->paramCount; i++) {
+            localVarSize++;
+            Symbol param;
+            param.name = wcsdup(function->params[i].name);
+            if(!param.name) {
+                *err = -1;
+                return NULL;
+            }
+            param.type = function->params[i].type;
+            param.isTypeKnown = true;
+            param.procIndex = procIndex;
+            param.isUsed = true;
+            localeSymbolTable.vars.push_back(param);
+        }
+    }
     symbols.push_back(localeSymbolTable);
     int localeScopeIndex = symbols.size()-1;
 #ifdef HX_DEBUG
@@ -627,7 +556,7 @@ Procedure* generateFunction(int procIndex, IR_Function* function, IR_Program* cu
     proc->instructionSize = 0;
     while (index < function->body_token_count - 1) {
         if (generateStatement(index, pitchTable, constantPool, localeSymbolTable.fun, currentProgram, all_function_count, function,
-                              symbols.at(0), symbols, localeScopeIndex, proc, procIndex, proc->stackSize, proc->localVarSize, err))
+                              symbols.at(0), symbols, localeScopeIndex, proc, procIndex, proc->stackSize, localVarSize, err))
             return NULL;
         index++;
     }
@@ -787,14 +716,14 @@ static int generateStatement(int& index, FunCallPitchTable& pitchTable, Constant
         generateInstructionsFromAST(proc->instructions, &inst_index, &inst_size, expNode, constantPool, outsideScopes,
                                     procIndex, err);
         if (expNode->kind == NODE_FUN_CALL) {
-            #ifdef HX_DEBUG
-                log(L"分析表达式->调用函数");
-                #endif
+#ifdef HX_DEBUG
+            log(L"分析表达式->调用函数");
+#endif
             // 有返回值要手动弹出
             if (expNode->data.funCall.ret_type.kind != IR_DT_VOID) {
-                #ifdef HX_DEBUG
+#ifdef HX_DEBUG
                 log(L"手动弹出返回值");
-                #endif
+#endif
                 Instruction popInst = {};
                 popInst.opcode = OP_POP;
                 proc->instructions.push_back(popInst);
@@ -1052,7 +981,7 @@ static int generateStatement(int& index, FunCallPitchTable& pitchTable, Constant
 #endif
         localeSymbolTable.vars.push_back(newVar);
         uint32_t varSize = (uint32_t)getVarSize(newVar.type, currentProgram->classes, currentProgram->class_count);
-        if (stackSize + varSize > stackSize) stackSize += varSize;
+        //if (stackSize + varSize > stackSize) stackSize += varSize;
         if (localVarSize + 1 > localVarSize) localVarSize++;
 
     } else if (wcscmp(currentToken.value, L"定义变量") == 0) {  // 定义变量: <id> [, 类型是:<kw>|<id>]];
@@ -1318,7 +1247,7 @@ static int generateStatement(int& index, FunCallPitchTable& pitchTable, Constant
 #endif
         localeSymbolTable.vars.push_back(newVar);
         uint32_t varSize = (uint32_t)getVarSize(newVar.type, currentProgram->classes, currentProgram->class_count);
-        if (stackSize + varSize > stackSize) stackSize += varSize;
+        //if (stackSize + varSize > stackSize) stackSize += varSize;
         if (localVarSize + 1 > localVarSize) localVarSize++;
 
     } else if (wcscmp(currentToken.value, L"repeat") == 0) {  // 循环 ::= repeat-> 语句|块 [until:exp]
@@ -1538,20 +1467,19 @@ void generateInstructionsFromAST(std::vector<Instruction>& instructions, int* in
         newInst.params[1].type = PARAM_TYPE_SIZE;
         instructions.push_back(newInst);
         // 关联需要将右值表达式所有相关指令加上
-        if (node->right->kind != NODE_VALUE && node->right->kind != NODE_FUN_CALL)
-            for (int i = symbols.size() - 1; i >= 0; i--) {
-                int varIndex = -1;
-                if ((varIndex = getVarIndex(node->left->data.var.name, &symbols.at(i))) != -1) {
-                    for (int j = expInstBegin; j < instructions.size(); j++) {
+        for (int i = symbols.size() - 1; i >= 0; i--) {
+            int varIndex = -1;
+            if ((varIndex = getVarIndex(node->left->data.var.name, &symbols.at(i))) != -1) {
+                for (int j = expInstBegin; j < instructions.size(); j++) {
 #ifdef HX_DEBUG
-                        log(L"将索引为%d指令与第%"
-                            L"d作用域的変量%ls关联",
-                            j, i, symbols.at(i).vars[varIndex].name);
+                    log(L"将索引为%d指令与第%"
+                        L"d作用域的変量%ls关联",
+                        j, i, symbols.at(i).vars[varIndex].name);
 #endif
-                        symbols.at(i).vars[varIndex].instIndex.push_back(j);
-                    }
+                    symbols.at(i).vars[varIndex].instIndex.push_back(j);
                 }
             }
+        }
         // 关联指令
 #ifdef HX_DEBUG
         log(L"关联指令STORE_VAR 目标变量名：%ls", node->data.binary.varName? node->data.binary.varName: L"(null)");
@@ -1656,18 +1584,12 @@ void generateInstructionsFromAST(std::vector<Instruction>& instructions, int* in
                     *inst_index, i, symbols.at(i).vars[varIndex].name);
 #endif
                 symbols.at(i).vars[varIndex].instIndex.push_back(*inst_index);
-                uint32_t size = 0;
+                symbols.at(i).vars[varIndex].isUsed = true;
             }
         }
         (*inst_index)++;
     } else if (node->kind == NODE_FUN_CALL) {
-        // 未解析到函数索引则报错（未能在符号表中解析函数）
-        /*if (node->data.funCall.index < 0) {
-            setError(ERR_CANNOT_FIND_SYMBOL, node->token ?
-        node->token->line : 0, node->data.funCall.name); *err = 255;
-            free(instructions);
-            return NULL;
-        }*/
+
         if (node->data.funCall.arg_count == 0) {
         } else {
             // 生成参数指令

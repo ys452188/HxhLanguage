@@ -89,7 +89,6 @@ typedef struct ConstantPool {
 typedef struct ObjectCodeHeader {
     char magic[4];  // 魔数 "HXOC"
     float version;
-    uint8_t isInDebugMode;
 } ObjectCodeHeader;
 //--------------------------------------
 typedef struct ObjectCode {
@@ -102,7 +101,10 @@ typedef struct ObjectCode {
 
 inline static wchar_t* readWstring(FILE* file) {
     uint32_t byteLen;
-    if (fread(&byteLen, sizeof(byteLen), 1, file) != 1) return nullptr;
+    if (fread(&byteLen, sizeof(byteLen), 1, file) != 1) {
+        fwprintf(errorStream, ERR_LABEL L"读字符串时发生错误！\n");
+        return nullptr;
+        }
     if (byteLen == 0) return nullptr;
 
     uint32_t charCount = byteLen / sizeof(uint16_t);
@@ -150,6 +152,7 @@ inline int readObjectCode(FILE* file, ObjectCode& obj) {
     // 验证头信息 "HXOC"
     char magic[4];
     if (fread(magic, 1, 4, file) != 4) {
+        fwprintf(errorStream, ERR_LABEL L"读魔数时发生错误！\n");
         fclose(file);
         return -1;
     }
@@ -159,6 +162,7 @@ inline int readObjectCode(FILE* file, ObjectCode& obj) {
     }
     float version = 0.0f;
     if (fread(&version, sizeof(float), 1, file) != 1) {
+        fwprintf(errorStream, ERR_LABEL L"读版本号时发生错误！\n");
         fclose(file);
         return -1;
     }
@@ -167,14 +171,10 @@ inline int readObjectCode(FILE* file, ObjectCode& obj) {
         fclose(file);
         return -1;
     }
-    uint8_t isInDebugMode = false;
-    if (fread(&isInDebugMode, sizeof(uint8_t), 1, file) != 1) {
-        fclose(file);
-        return -1;
-    }
 
     // 读取常量池
     if (fread(&(obj.constantPool.size), sizeof(uint32_t), 1, file) != 1) {
+        fwprintf(errorStream, ERR_LABEL L"读常量池时发生错误！\n");
         fclose(file);
         return -1;
     }
@@ -182,6 +182,7 @@ inline int readObjectCode(FILE* file, ObjectCode& obj) {
     for (uint32_t i = 0; i < obj.constantPool.size; i++) {
         char typeChar;
         if (fread(&typeChar, sizeof(char), 1, file) != 1) {
+            fwprintf(errorStream, ERR_LABEL L"读常量池的typeChar时发生错误！\n");
             fclose(file);
             return -1;
         }
@@ -218,12 +219,8 @@ inline int readObjectCode(FILE* file, ObjectCode& obj) {
             }
             proc.instructions.push_back(instr);
         }
-        // 读取运行栈和局部变量配置
+        // 读取运行栈
         if (fread(&(proc.stackSize), sizeof(uint32_t), 1, file) != 1) {
-            fclose(file);
-            return -1;
-        }
-        if (fread(&(proc.localVarSize), sizeof(uint32_t), 1, file) != 1) {
             fclose(file);
             return -1;
         }

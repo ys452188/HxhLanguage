@@ -79,6 +79,17 @@ int deduceFunctionReturnTypes(IR_Program* program) {
         //简单记录变量
         SymbolTable tempLocalScope = {};
         tempLocalScope.fun = program->functions;
+        if(fun->paramCount > 0 && fun->params != NULL) {
+#ifdef HX_DEBUG
+            log(L"返回类型推导.->填入参数");
+#endif
+            for(int i = 0; i < fun->paramCount; i++) {
+                Symbol param;
+                param.name = wcsdup(fun->params[i].name);
+                param.type = fun->params[i].type;
+                tempLocalScope.vars.push_back(param);
+            }
+        }
         std::vector<SymbolTable> tempOutsideScopes;
         tempOutsideScopes.push_back(tempLocalScope);
 

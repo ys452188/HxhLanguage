@@ -72,7 +72,6 @@ typedef struct Procedure {
     uint32_t instructionSize = 0;
     std::vector<Instruction> instructions;
     uint32_t stackSize = 0;     // 栈大小
-    uint32_t localVarSize = 0;  // 局部变量数量
 } Procedure;
 //------------------------------------
 // 常量池
@@ -94,7 +93,6 @@ typedef struct ConstantPool {
 typedef struct ObjectCodeHeader {
     char magic[4];  // 魔数 "HXOC"
     float version = 0.0f;
-    uint8_t isInDebugMode = 0;
 } ObjectCodeHeader;
 //--------------------------------------
 typedef struct ObjectCode {
@@ -118,10 +116,8 @@ static int writeHeader(FILE* file) noexcept {
     header.magic[2] = 'O';
     header.magic[3] = 'C';
     header.version = HXC_VERSION;
-    header.isInDebugMode = (uint8_t)isInDebugMode;
     if (fwrite(&(header.magic), sizeof(header.magic), 1, file) != 1) return -1;
     if (fwrite(&(header.version), sizeof(header.version), 1, file) != 1) return -1;
-    if (fwrite(&(header.isInDebugMode), sizeof(header.isInDebugMode), 1, file) != 1) return -1;
     return 0;
 }
 // 存的是真实大小
@@ -249,7 +245,7 @@ static int writeProcedure(Procedure& proc, FILE* file) noexcept {
 // 过滤出真正需要写入的指令
     std::vector<Instruction> validInstructions;
     for (size_t i = 0; i < proc.instructions.size(); i++) {
-        if (isInDebugMode || !proc.instructions.at(i).isNotUsed) {
+        if (!proc.instructions.at(i).isNotUsed) {
             validInstructions.push_back(proc.instructions.at(i));
         }
     }
@@ -270,11 +266,6 @@ static int writeProcedure(Procedure& proc, FILE* file) noexcept {
     log(L"写stackSize:%d", proc.stackSize);
 #endif
     if (fwrite(&(proc.stackSize), sizeof(uint32_t), 1, file) != 1) return -1;
-    // localVarSize
-#ifdef HX_DEBUG
-    log(L"写localVarSize:%d", proc.localVarSize);
-#endif
-    if (fwrite(&(proc.localVarSize), sizeof(uint32_t), 1, file) != 1) return -1;
     return 0;
 }
 int writeObjectCode(FILE* objFile, ObjectCode& obj) noexcept {

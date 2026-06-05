@@ -1,7 +1,6 @@
 #include "config.h"
 #define HXC_VERSION 0.114f
 //#define HX_DEBUG
-bool isInDebugMode = true;
 #include <errno.h>
 #include <stdio.h>
 #include <time.h>
@@ -86,7 +85,7 @@ int main(int argc, char* argv[]) {
             return 255;
         } else if (lexerError == -1) {
             fwprintf(errorStream, L"\33[31m[ERR]\33[0m内存分配失败！\n");
-            freeTokens(&tokens);	
+            freeTokens(&tokens);
             return -1;
         }
         free(src);

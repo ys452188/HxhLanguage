@@ -118,6 +118,7 @@ public:
             this->name = nullptr;
         }
         this->instIndex = other.instIndex;
+        this->procIndex = other.procIndex;
     }
 
     //赋值运算符实现
@@ -130,6 +131,7 @@ public:
         std::swap(this->size, other.size);
         std::swap(this->offest, other.offest);
         std::swap(this->instIndex, other.instIndex);
+        std::swap(this->procIndex, other.procIndex);
         return *this;
     }
 

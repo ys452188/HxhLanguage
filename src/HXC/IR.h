@@ -787,8 +787,7 @@ static IR_FunctionParam* parseFunctionParams(Tokens* tokens, int* index, int* pa
         if (tokens->tokens[*index].type != TOK_ID) {
 #ifdef HX_DEBUG
             fwprintf(logStream,
-                     L"[DBG] parseFunctionParams: token at "
-                     L"index=%d type=%d line=%d\n",
+                     L"[DBG]分析参数: index=%d type=%d line=%d\n",
                      *index, tokens->tokens[*index].type, tokens->tokens[*index].line);
             int start = *index - 3;
             if (start < 0) start = 0;
@@ -816,6 +815,9 @@ static IR_FunctionParam* parseFunctionParams(Tokens* tokens, int* index, int* pa
             return NULL;
         }
         wcscpy(params[(*paramCount) - 1].name, tokens->tokens[*index].value);
+#ifdef HX_DEBUG
+        log(L"解析到参数名：%ls", params[(*paramCount) - 1].name);
+#endif
         if ((*index + 1) >= tokens->count) {
             *err = 255;  // 语法错误
             setError(ERR_FUN_ARG, tokens->tokens[*index].line, NULL);
@@ -829,6 +831,9 @@ static IR_FunctionParam* parseFunctionParams(Tokens* tokens, int* index, int* pa
         (*index)++;
         // 解析冒号
         if (tokens->tokens[*index].type != TOK_OPR_COLON) {
+#ifdef HX_DEBUG
+            log(L"解析冒号发现错误");
+#endif
             *err = 255;  // 语法错误
             setError(ERR_FUN_ARG, tokens->tokens[*index].line, NULL);
             // 释放已分配的内存
@@ -850,7 +855,10 @@ static IR_FunctionParam* parseFunctionParams(Tokens* tokens, int* index, int* pa
         }
         (*index)++;
         // 解析数据类型
-        if (tokens->tokens[*index].type != TOK_ID) {
+        if (tokens->tokens[*index].type != TOK_ID && tokens->tokens[*index].type != TOK_KW) {
+#ifdef HX_DEBUG
+            log(L"解析到数据类型发现错误");
+#endif
             *err = 255;  // 语法错误
             setError(ERR_FUN_ARG, tokens->tokens[*index].line, NULL);
             // 释放已分配的内存
@@ -862,6 +870,9 @@ static IR_FunctionParam* parseFunctionParams(Tokens* tokens, int* index, int* pa
         }
         params[(*paramCount) - 1].type = parseDataType(tokens, index, tokens->count, err);
         if (*err != 0) {
+#ifdef HX_DEBUG
+            log(L"数据类型转为IR_DataType发现错误");
+#endif
             // 释放已分配的内存
             for (int i = 0; i < (*paramCount); i++) {
                 free(params[i].name);
@@ -1282,6 +1293,9 @@ static IR_Function* parseFunction_EN(Tokens* tokens, int* index, int* err) {
     }
     (*index)++;
     int paramCount = 0;
+#ifdef HX_DEBUG
+    log(L"解析参数列表.....");
+#endif
     function->params = parseFunctionParams(tokens, index, &paramCount, err);
     if (*err != 0) {
         free(function->name);

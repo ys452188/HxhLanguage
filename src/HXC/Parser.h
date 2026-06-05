@@ -111,6 +111,7 @@ void freeAST(ASTNode* node) noexcept {
     free(node);
 }
 static int getVarIndex(const wchar_t* name, SymbolTable* table) {
+    if(name == nullptr|| table == nullptr) return -1;
     for (uint32_t i = 0; i < table->vars.size(); i++) {
         if (wcscmp(table->vars.at(i).name, name) == 0) return i;
     }
@@ -278,24 +279,47 @@ static ASTNode* parsePrimary(Token* tokens, int* index, int size, FunCallPitchTa
                 funCallNode->data.funCall.name = wcsdup(curr->value);
                 int n = *index + 2;
                 // 解析参数
-                int argIndex = n;
-                funCallNode->data.funCall.args = (ASTNode**)calloc(1, sizeof(ASTNode*));
-                funCallNode->data.funCall.arg_count = 0;
-                while (argIndex < size && tokens[argIndex].type != TOK_OPR_RQUOTE) {
-                    if (tokens[argIndex].type == TOK_OPR_COMMA) {
+                    int argIndex = n;
+                    funCallNode->data.funCall.args = (ASTNode**)calloc(1, sizeof(ASTNode*));
+                    funCallNode->data.funCall.arg_count = 0;
+                    
+                    while (argIndex < size && tokens[argIndex].type != TOK_OPR_RQUOTE) {
+                        if (tokens[argIndex].type == TOK_OPR_COMMA) {
+                            argIndex++;
+                            continue;
+                        }
+#ifdef HX_DEBUG
+                        log(L"分析实参");
+#endif
+                        int quoteCount = 0;
+                        int tempIndex = argIndex;
+                        // 正确处理括号嵌套并找到参数边界喵
+                        while (tempIndex < size) {
+                            if (tokens[tempIndex].type == TOK_OPR_LQUOTE) {
+                                quoteCount++;
+                            } else if (tokens[tempIndex].type == TOK_OPR_RQUOTE) {
+                                if (quoteCount == 0) break; // 找到当前实参的结束边界
+                                quoteCount--;
+                            } else if (tokens[tempIndex].type == TOK_OPR_COMMA) {
+                                if (quoteCount == 0) break; // 找到当前实参的逗号分隔符
+                            }
+                            tempIndex++;
+                        }
+                        
+                        ASTNode* arg = parseExpression(tokens, &argIndex, tempIndex, pitchTable, table, outsideTable, localeScopeIndex, err);
+                        if (*err != 0) {
+                            freeAST(funCallNode);
+                            return NULL;
+                        }
+                        
+                        funCallNode->data.funCall.args = (ASTNode**)realloc(
+                                                             funCallNode->data.funCall.args, sizeof(ASTNode*) * (funCallNode->data.funCall.arg_count + 1));
+                        funCallNode->data.funCall.args[funCallNode->data.funCall.arg_count] = arg;
+                        funCallNode->data.funCall.arg_count++;
+                        // parseExpression 会执行 (*index)--
+                        // 必须手动把它往前推一格
                         argIndex++;
-                        continue;
                     }
-                    ASTNode* arg = parseExpression(tokens, &argIndex, size, pitchTable, table, outsideTable, localeScopeIndex, err);
-                    if (*err != 0) {
-                        freeAST(funCallNode);
-                        return NULL;
-                    }
-                    funCallNode->data.funCall.args = (ASTNode**)realloc(
-                                                         funCallNode->data.funCall.args, sizeof(ASTNode*) * (funCallNode->data.funCall.arg_count + 1));
-                    funCallNode->data.funCall.args[funCallNode->data.funCall.arg_count] = arg;
-                    funCallNode->data.funCall.arg_count++;
-                }
                 if (tokens[argIndex].type != TOK_OPR_RQUOTE) {
                     setError(ERR_EXP, curr->line,
                              curr->value);  // 报错：期待表达式

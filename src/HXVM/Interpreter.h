@@ -109,6 +109,9 @@ inline static int pushCallFrame(Procedure& proc, HxVector<CallFrame*>& frames) {
     CallFrame* frame = (CallFrame*)memoryAllocer.hxMalloc(sizeof(CallFrame));
     if(frame == NULL) return -1;
     frame->proc = &proc;
+    #ifdef HX_DEBUG
+        wprintf(LOG_LABEL L"过程使用栈内存大小：%d\n", proc.stackSize);
+#endif
     frame->stack = (char*)(memoryAllocer.hxMalloc(proc.stackSize));
     frame->instIndex = 0;
     if (frame->stack == NULL && proc.stackSize != 0) {
@@ -435,17 +438,23 @@ inline int interpretInstruction(Instruction& inst, OpStack& opStack, char*& stac
             fwprintf(errorStream, ERR_LABEL L"参数不够喵~\n");
             return -1;
         }
-
         // 插入栈帧
         if (pushCallFrame(proc, frames) != 0) return -1;
         frameTop++;
-
+        //复制实参
+#ifdef HX_DEBUG
+        wprintf(LOG_LABEL L"调用->从栈中复制参数\n");
+#endif
         uint32_t currentParamOffset = 0; // 从子函数栈底偏移0开始铺参数
-        for (int i = opStack.top - argCount; i < opStack.top; i++) {
+        for (int i = opStack.top-argCount; i < opStack.top; i++) {
             memcpy(frames[frameTop]->stack + currentParamOffset, opStack.opStack[i].value, opStack.opStack[i].size);
+#ifdef HX_DEBUG
+        wprintf(LOG_LABEL L"调用->从栈中复制参数->%d byte, offest: %d \n", opStack.opStack[i].size, currentParamOffset);
+#endif
             currentParamOffset += opStack.opStack[i].size; // 铺完一个，挪动指针
         }
         opStack.top -= argCount; //弹出参数
+        //调用者跳过CAL以防无限递归
         frames[frameTop - 1]->instIndex++;
         return 0;
         break;

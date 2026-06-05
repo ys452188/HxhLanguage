@@ -20,16 +20,16 @@ class: A->D {
     新变量 = 114。
     
     var:newVar1:int。
-    # repeat-> {
-        f();
-        __hx_write_string__ "Hello, HxHLanguage!\n"。
-    # }
-    //g();
+    newVar1 = 114;
+    
+    newVar1 = f(newVar1);
+    __hx_write_string__ "Hello, HxHLanguage!\n"。
+   
     返回：0。  
 }
-fun:f()-> {
+fun:f(num:int)-> {
     __hx_write_string__ "call f()\n";
-    ret:1919810;
+    ret:1919810+num;
 }
 fun:g()-> {
     __hx_write_string__ "Hello, HxHLanguage!\n"。
