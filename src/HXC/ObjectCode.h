@@ -23,8 +23,8 @@ enum {
     OP_MUL,
     OP_DIV,
     OP_JMP,            // OP_JMP <instAddr(u32)>
-    OP_JMP_CONDITION,  // JMP_CONDITION <栈顶为真时跳转的地址>
-    // <为假时跳转的地址(>size时跳转至末尾)>
+    // JMP_CONDITION <栈顶为真时跳转的地址(index u32)> <为假时跳转的地址(index u32)>
+    OP_JMP_CONDITION,
     OP_CAL,  // CAL <procIndex>(u32) <paramCount>(u32)
     OP_RET,
     OP_PRINT_STRING,
@@ -71,7 +71,7 @@ typedef struct Procedure {
 
     uint32_t instructionSize = 0;
     std::vector<Instruction> instructions;
-    uint32_t stackSize = 0;     // 栈大小
+    uint32_t stackSize = 0;  // 栈大小
 } Procedure;
 //------------------------------------
 // 常量池
@@ -137,7 +137,7 @@ static int writeWstring(const wchar_t* wstr, FILE* file) noexcept {
     }
 
     uint32_t len = wcslen(wstr);
-    uint32_t byteLen = len*sizeof(uint16_t);  // 不含 \0
+    uint32_t byteLen = len * sizeof(uint16_t);  // 不含 \0
     if (fwrite(&byteLen, sizeof(byteLen), 1, file) != 1) return -1;
 
     for (uint32_t i = 0; i < len; i++) {
@@ -229,8 +229,11 @@ static int writeInstruction(Instruction& inst, FILE* file) {
     case OP_JMP:
         fwprintf(logStream, L"\33[1;34m OP_JMP\33[0m\n");
         break;
+    case OP_JMP_CONDITION:
+        fwprintf(logStream, L"\33[1;34m OP_JMP_CONDITION\33[0m\n");
+        break;
     default:
-        fwprintf(logStream, L"\33[1;31mOP_NOP\33[0m)\n");
+        fwprintf(logStream, L"\33[1;32mOP_NOP\33[0m)\n");
     }
 #endif
     // 写opcode
@@ -242,7 +245,7 @@ static int writeInstruction(Instruction& inst, FILE* file) {
     return 0;
 }
 static int writeProcedure(Procedure& proc, FILE* file) noexcept {
-// 过滤出真正需要写入的指令
+    // 过滤出真正需要写入的指令
     std::vector<Instruction> validInstructions;
     for (size_t i = 0; i < proc.instructions.size(); i++) {
         if (!proc.instructions.at(i).isNotUsed) {

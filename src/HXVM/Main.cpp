@@ -1,7 +1,7 @@
 #include <atomic>
 
 #include "config.h"
-//#define HX_DEBUG
+// #define HX_DEBUG
 std::atomic<bool> shouldExit{false};  // 要退出吗，用于处理SIGINT
 #define OP_STACK_SIZE 512             // 操作数栈大小
 #define HXVM_VERSION 0.114f
@@ -48,8 +48,8 @@ int main(int argc, char** argv) {
     start = clock();
     initLocale();
     std::string path = "";
-    for(int i = 1; i < argc; i++) {
-        if(strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--version") == 0) {
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--version") == 0) {
             wprintf(INFO_LABEL L"当时版本是 %f 喵~\n快来操作hxvm喵\n", HXVM_VERSION);
             return 0;
         } else {
@@ -100,7 +100,7 @@ void signalHandler(int signalNumber) {
     if (signalNumber == SIGINT) {
         wprintf(INFO_LABEL L"\33[1;31m不......不要停♡\33[0m\n");
         shouldExit.store(true);
-    } else if(signalNumber == SIGSEGV) {
+    } else if (signalNumber == SIGSEGV) {
         wprintf(INFO_LABEL L"\33[1;31m段内存犯规了！\33[0m\n");
         shouldExit.store(true);
     }

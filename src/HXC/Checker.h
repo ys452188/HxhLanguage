@@ -1,11 +1,12 @@
 #ifndef HXHLANG_SRC_HXC_CHECKER_H
 #define HXHLANG_SRC_HXC_CHECKER_H
 #include <wchar.h>
+
 #include "IR.h"
 #include "SymbolTable.h"
 
-extern ASTNode* parseExpression(Token* exp, int* index, int size, FunCallPitchTable& pitchTable, SymbolTable* table, std::vector<SymbolTable>& outsideTable, int localeScopeIndex,
-                                int* err) noexcept;
+extern ASTNode* parseExpression(Token* exp, int* index, int size, FunCallPitchTable& pitchTable, SymbolTable* table,
+                                std::vector<SymbolTable>& outsideTable, int localeScopeIndex, int* err) noexcept;
 void freeAST(ASTNode* node) noexcept;
 inline IR_Class* getClassByName(const wchar_t* name, IR_Program* currentIRProgram);
 static int getVarIndex(const wchar_t* name, SymbolTable* table);
@@ -71,19 +72,19 @@ int deduceFunctionReturnTypes(IR_Program* program) {
 #ifdef HX_DEBUG
     log(L"进行函数返回类型推导.....");
 #endif
-    if(!program) return -1;
+    if (!program) return -1;
     for (int i = 0; i < program->functions.size(); i++) {
         IR_Function* fun = program->functions[i];
         // 已经知道类型
         if (fun->isReturnTypeKnown || fun->body_token_count == 0) continue;
-        //简单记录变量
+        // 简单记录变量
         SymbolTable tempLocalScope = {};
         tempLocalScope.fun = program->functions;
-        if(fun->paramCount > 0 && fun->params != NULL) {
+        if (fun->paramCount > 0 && fun->params != NULL) {
 #ifdef HX_DEBUG
             log(L"返回类型推导.->填入参数");
 #endif
-            for(int i = 0; i < fun->paramCount; i++) {
+            for (int i = 0; i < fun->paramCount; i++) {
                 Symbol param;
                 param.name = wcsdup(fun->params[i].name);
                 param.type = fun->params[i].type;
@@ -97,8 +98,8 @@ int deduceFunctionReturnTypes(IR_Program* program) {
         FunCallPitchTable feckPitchTable;
         int err = 0;
         unsigned int blockNum = 0U;
-        //遍历一遍，查找ret和简单记录变量
-        for (int index = 1; index < fun->body_token_count-1; index++) {
+        // 遍历一遍，查找ret和简单记录变量
+        for (int index = 1; index < fun->body_token_count - 1; index++) {
             Token& currentToken = fun->bodyTokens[index];
 
             if (currentToken.type == TOK_OPR_LBRACE) {
@@ -108,7 +109,7 @@ int deduceFunctionReturnTypes(IR_Program* program) {
                 tempLocalScopePtr = &(tempOutsideScopes.back());
                 blockNum++;
             }
-            if(currentToken.type == TOK_OPR_RBRACE) {
+            if (currentToken.type == TOK_OPR_RBRACE) {
                 blockNum--;
                 tempLocalScopePtr = &(tempOutsideScopes.at(blockNum));
             }
@@ -119,7 +120,7 @@ int deduceFunctionReturnTypes(IR_Program* program) {
                     return 255;
                 }
                 index++;  // 指向冒号
-                if (fun ->bodyTokens[index].type != TOK_OPR_COLON) {
+                if (fun->bodyTokens[index].type != TOK_OPR_COLON) {
                     setError(ERR_DEF_VAR, currentToken.line, NULL);
                     return 255;
                 }
@@ -164,8 +165,7 @@ int deduceFunctionReturnTypes(IR_Program* program) {
                     setError(ERR_DEF_VAR, currentToken.line, NULL);
                     return 255;
                 }
-                if (wcscmp(fun->bodyTokens[index].value, L"int") == 0 ||
-                        wcscmp(fun->bodyTokens[index].value, L"整型") == 0) {
+                if (wcscmp(fun->bodyTokens[index].value, L"int") == 0 || wcscmp(fun->bodyTokens[index].value, L"整型") == 0) {
                     newVar.type.kind = IR_DT_INT;
                     // int&
                     if (fun->bodyTokens[index + 1].type == TOK_OPR_REFER) {
@@ -285,13 +285,13 @@ int deduceFunctionReturnTypes(IR_Program* program) {
                     return 255;
                 }
                 index++;  // 指向表达式起始位置
-                ASTNode* expNode =
-                    parseExpression(fun->bodyTokens, &index, fun->body_token_count, feckPitchTable, &tempLocalScope, tempOutsideScopes, blockNum, &err);
-                fun->isReturnTypeKnown = true;
-                fun->returnType = expNode->resultType;
+                ASTNode* expNode = parseExpression(fun->bodyTokens, &index, fun->body_token_count, feckPitchTable,
+                                                   &tempLocalScope, tempOutsideScopes, blockNum, &err);
                 if (err != 0 || !expNode) {
                     return 255;
                 }
+                fun->isReturnTypeKnown = true;
+                fun->returnType = expNode->resultType;
                 index++;
                 if (fun->bodyTokens[index].type != TOK_END) {
                     setError(ERR_RET, currentToken.line, NULL);
@@ -307,7 +307,7 @@ int deduceFunctionReturnTypes(IR_Program* program) {
             fun->isReturnTypeKnown = true;
         }
 #ifdef HX_DEBUG
-        switch(fun->returnType.kind) {
+        switch (fun->returnType.kind) {
         case IR_DT_VOID:
             log(L"类型推导：%ls -> %ls", fun->name, L"void");
             break;

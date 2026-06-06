@@ -41,7 +41,7 @@ static Procedure* generateFunction(int procIndex, IR_Function* function, IR_Prog
  */
 static Procedure* generateVariable();
 static int getMainFunctionIndex(IR_Program* program) {
-    if (!program ) return -1;
+    if (!program) return -1;
     int index = -1;
     for (int i = 0; i < program->functions.size(); i++) {
         if ((program->functions[i] && program->functions[i]->name && wcscmp(program->functions[i]->name, L"main") == 0) ||
@@ -61,7 +61,7 @@ static int getMainFunctionIndex(IR_Program* program) {
 static void listObjectCode_Proc(Procedure* proc) {
     if (!proc) return;
     fwprintf(logStream, L"[DEB] 过程指令数: %u\n", proc->instructionSize);
-    for (uint32_t i = 0; i < proc->instructionSize; i++) {
+    for (uint32_t i = 0; i < proc->instructions.size(); i++) {
         Instruction& ins = proc->instructions[i];
         if (ins.isNotUsed) {
             fwprintf(logStream, L"\33[31m(无用)\33[0m");
@@ -165,8 +165,14 @@ static void listObjectCode_Proc(Procedure* proc) {
                      L"(addr)%u\33[0m\n",
                      i, *((uint32_t*)ins.params[0].value));
             break;
+        case OP_JMP_CONDITION:
+            fwprintf(logStream,
+                     L"\t%03u: \33[1;34m OP_JMP_CONDITION "
+                     L"(trueAddr)%u  (false)%u\33[0m\n",
+                     i, *((uint32_t*)ins.params[0].value), *((uint32_t*)ins.params[1].value));
+            break;
         default:
-            fwprintf(logStream, L"\t%03u: \33[1;31mOP_NOP\33[0m\n", i);
+            fwprintf(logStream, L"\t%03u: \33[1;32mOP_NOP\33[0m\n", i);
         }
     }
 }
@@ -336,8 +342,7 @@ ObjectCode* generateObjectCode(IR_Program* program, int* err) {
 #ifdef HX_DEBUG
                 log(L"\n变量%ls相关指令数量：%d", blockTable.vars.at(n).name, blockTable.vars.at(n).instIndex.size());
 #endif
-                objCode->procedures.at(blockTable.vars.at(n).procIndex)
-                ->stackSize += blockTable.vars.at(n).size;
+                objCode->procedures.at(blockTable.vars.at(n).procIndex)->stackSize += blockTable.vars.at(n).size;
                 for (int m = 0; m < blockTable.vars.at(n).instIndex.size(); m++) {
                     switch (objCode->procedures.at(blockTable.vars.at(n).procIndex)
                             ->instructions[blockTable.vars.at(n).instIndex.at(m)]
@@ -364,9 +369,9 @@ ObjectCode* generateObjectCode(IR_Program* program, int* err) {
                         }
 #ifdef HX_DEBUG
                         log(L"offest = "
-                            L"%ud, "
+                            L"%u, "
                             L"size = "
-                            L"%ud",
+                            L"%u",
                             offest, size);
 #endif
                         memcpy(objCode->procedures.at(blockTable.vars.at(n).procIndex)
@@ -424,9 +429,8 @@ ObjectCode* generateObjectCode(IR_Program* program, int* err) {
                         for (int instIndex = blockTable.vars.at(n).instIndex.at(m);
                                 instIndex < objCode->procedures.at(blockTable.vars.at(n).procIndex)->instructions.size();
                                 instIndex++) {
-                            if (objCode->procedures.at(blockTable.vars.at(n).procIndex)
-                                    ->instructions.at(instIndex)
-                                    .opcode == OP_JMP) {
+                            if (objCode->procedures.at(blockTable.vars.at(n).procIndex)->instructions.at(instIndex).opcode ==
+                                    OP_JMP) {
 #ifdef HX_DEBUG
                                 log(L"更新OP_JMP(第%u指令)", instIndex);
 #endif
@@ -489,17 +493,18 @@ static int getVarSize(IR_DataType type, IR_Class** class_table, int class_table_
     case IR_DT_BOOL:
         return sizeof(bool);
     case IR_DT_CUSTOM:
-        return 4;    //void*
+        return 4;  // void*
     //(class_table)[getClassIndexByName(type.customTypeName, class_table, class_table_size)]->size;
     default:
         return 8;
     }
 }
 /*生成语句的目标代码*/
-static int generateStatement(int& index, FunCallPitchTable& pitchTable, ConstantPool* constantPool, std::vector<IR_Function*>& all_functions,
-                             IR_Program* currentProgram, int all_function_count, IR_Function* function,
-                             SymbolTable& localeSymbolTable, std::vector<SymbolTable>& outsideScopes, int localeScopeIndex, Procedure* proc,
-                             int procIndex, uint32_t& stackSize, uint32_t& localVarSize, int* err);
+static int generateStatement(int& index, FunCallPitchTable& pitchTable, ConstantPool* constantPool,
+                             std::vector<IR_Function*>& all_functions, IR_Program* currentProgram, int all_function_count,
+                             IR_Function* function, SymbolTable& localeSymbolTable, std::vector<SymbolTable>& outsideScopes,
+                             int localeScopeIndex, Procedure* proc, int procIndex, uint32_t& stackSize, uint32_t& localVarSize,
+                             int* err);
 Procedure* generateFunction(int procIndex, IR_Function* function, IR_Program* currentProgram, FunCallPitchTable& pitchTable,
                             ConstantPool* constantPool, std::vector<IR_Function*>& all_functions, int all_function_count,
                             std::vector<SymbolTable>& symbols, int* err) {
@@ -516,25 +521,24 @@ Procedure* generateFunction(int procIndex, IR_Function* function, IR_Program* cu
     proc->fun = function;
     if (function->body_token_count == 0 || !function->bodyTokens) {
         // 空函数体
-        proc->instructionSize = 0;
         proc->stackSize = 0;
         return proc;
     }
-    int index = 1;   //跳过 {
+    int index = 1;  // 跳过 {
     uint32_t localVarSize = 0;
     SymbolTable localeSymbolTable = {};
     // 填充函数表
     localeSymbolTable.fun = all_functions;
-    //正序填入参数
-    if(function->paramCount > 0 && function->params != NULL) {
+    // 正序填入参数
+    if (function->paramCount > 0 && function->params != NULL) {
 #ifdef HX_DEBUG
         log(L"填入参数");
 #endif
-        for(int i = 0; i < function->paramCount; i++) {
+        for (int i = 0; i < function->paramCount; i++) {
             localVarSize++;
             Symbol param;
             param.name = wcsdup(function->params[i].name);
-            if(!param.name) {
+            if (!param.name) {
                 *err = -1;
                 return NULL;
             }
@@ -546,45 +550,46 @@ Procedure* generateFunction(int procIndex, IR_Function* function, IR_Program* cu
         }
     }
     symbols.push_back(localeSymbolTable);
-    int localeScopeIndex = symbols.size()-1;
+    int localeScopeIndex = symbols.size() - 1;
 #ifdef HX_DEBUG
     log(L"all_functions.size = %d", all_functions.size());
 #endif
 #ifdef HX_DEBUG
     log(L"localeSymbolTable.fun.size = %d", localeSymbolTable.fun.size());
 #endif
-    proc->instructionSize = 0;
     while (index < function->body_token_count - 1) {
-        if (generateStatement(index, pitchTable, constantPool, localeSymbolTable.fun, currentProgram, all_function_count, function,
-                              symbols.at(0), symbols, localeScopeIndex, proc, procIndex, proc->stackSize, localVarSize, err))
+        if (generateStatement(index, pitchTable, constantPool, localeSymbolTable.fun, currentProgram, all_function_count,
+                              function, symbols.at(0), symbols, localeScopeIndex, proc, procIndex, proc->stackSize,
+                              localVarSize, err))
             return NULL;
         index++;
     }
-    proc->instructionSize = proc->instructions.size();
     function->proc = proc;
     return proc;
 }
-static int generateStatement(int& index, FunCallPitchTable& pitchTable, ConstantPool* constantPool, std::vector<IR_Function*>& all_functions,
-                             IR_Program* currentProgram, int all_function_count, IR_Function* function,
-                             SymbolTable& localeSymbolTable,
-                             std::vector<SymbolTable>& outsideScopes /*块内与块外的并集,localeSymbolTable包含其中*/, int localeScopeIndex,
-                             Procedure* proc, int procIndex, uint32_t& stackSize, uint32_t& localVarSize, int* err) {
+static int generateStatement(int& index, FunCallPitchTable& pitchTable, ConstantPool* constantPool,
+                             std::vector<IR_Function*>& all_functions, IR_Program* currentProgram, int all_function_count,
+                             IR_Function* function, SymbolTable& localeSymbolTable,
+                             std::vector<SymbolTable>& outsideScopes /*块内与块外的并集,localeSymbolTable包含其中*/,
+                             int localeScopeIndex, Procedure* proc, int procIndex, uint32_t& stackSize, uint32_t& localVarSize,
+                             int* err) {
     Token& currentToken = function->bodyTokens[index];
     if (currentToken.type == TOK_END) return 0;
-    if (currentToken.type == TOK_OPR_LBRACE) { //块
+    if (currentToken.type == TOK_OPR_LBRACE) {  // 块
 #ifdef HX_DEBUG
         log(L"========分析块-----");
 #endif
-        index++;    //跳过 {
+        index++;  // 跳过 {
         SymbolTable newLocalScope = {};
         newLocalScope.fun = outsideScopes.back().fun;
         outsideScopes.push_back(newLocalScope);
         uint32_t _localVarSize = 0U;
-        int newLocaleScopeIndex = outsideScopes.size()-1;
-        while(function->bodyTokens[index].type != TOK_OPR_RBRACE) {
-            generateStatement(index, pitchTable,constantPool, all_functions,currentProgram, all_function_count, function,
-                              outsideScopes.back(), outsideScopes,newLocaleScopeIndex, proc, procIndex, stackSize, _localVarSize, err);
-            if(*err) return *err;
+        int newLocaleScopeIndex = outsideScopes.size() - 1;
+        while (function->bodyTokens[index].type != TOK_OPR_RBRACE) {
+            generateStatement(index, pitchTable, constantPool, all_functions, currentProgram, all_function_count, function,
+                              outsideScopes.back(), outsideScopes, newLocaleScopeIndex, proc, procIndex, stackSize,
+                              _localVarSize, err);
+            if (*err) return *err;
             index++;
         }
 
@@ -620,7 +625,6 @@ static int generateStatement(int& index, FunCallPitchTable& pitchTable, Constant
             Instruction newInst = {};
             newInst.opcode = OP_RET;
             proc->instructions.push_back(newInst);
-            proc->instructionSize++;
             return 0;
         }
         //:
@@ -632,8 +636,8 @@ static int generateStatement(int& index, FunCallPitchTable& pitchTable, Constant
         }
         index++;  // 指向表达式起始位置
         // wprintf(L"%ls", function->bodyTokens[index].value);
-        ASTNode* expNode =
-            parseExpression(function->bodyTokens, &index, function->body_token_count, pitchTable, &localeSymbolTable, outsideScopes, localeScopeIndex, err);
+        ASTNode* expNode = parseExpression(function->bodyTokens, &index, function->body_token_count, pitchTable,
+                                           &localeSymbolTable, outsideScopes, localeScopeIndex, err);
         if (*err != 0 || !expNode) {
             delete (proc);
             return 255;
@@ -642,21 +646,19 @@ static int generateStatement(int& index, FunCallPitchTable& pitchTable, Constant
         log(L"生成返回值表达式指令...\n");
 #endif
         // 生成表达式指令
-        int inst_index = proc->instructionSize;
-        int inst_size = proc->instructionSize;
+        int inst_index = proc->instructions.size();
+        int inst_size = proc->instructions.size();
         generateInstructionsFromAST(proc->instructions, &inst_index, &inst_size, expNode, constantPool, outsideScopes,
                                     procIndex, err);
         if (*err != 0) {
             freeAST(expNode);
             return 255;
         }
-        proc->instructionSize = inst_index;
         freeAST(expNode);
         // 生成返回指令
         Instruction newInst = {};
         newInst.opcode = OP_RET;
         proc->instructions.push_back(newInst);
-        proc->instructionSize++;
         index++;
         if (function->bodyTokens[index].type != TOK_END) {
             setError(ERR_RET, currentToken.line, NULL);
@@ -697,22 +699,21 @@ static int generateStatement(int& index, FunCallPitchTable& pitchTable, Constant
         newInst.params[0].size = sizeof(uint32_t);
 
         proc->instructions.push_back(newInst);
-        proc->instructionSize++;
         if (index + 1 >= function->body_token_count) {
             return 0;
         }
         index++;
         if ((function->bodyTokens[index].type != TOK_END)) return 0;
     } else if (currentToken.type == TOK_ID) {  // 赋值或调用函数
-        ASTNode* expNode =
-            parseExpression(function->bodyTokens, &index, function->body_token_count, pitchTable, &localeSymbolTable, outsideScopes, localeScopeIndex, err);
+        ASTNode* expNode = parseExpression(function->bodyTokens, &index, function->body_token_count, pitchTable,
+                                           &localeSymbolTable, outsideScopes, localeScopeIndex, err);
         if (*err != 0 || !expNode) {
             delete (proc);
             return 255;
         }
         // 生成表达式指令
-        int inst_index = proc->instructionSize;
-        int inst_size = proc->instructionSize;
+        int inst_index = proc->instructions.size();
+        int inst_size = proc->instructions.size();
         generateInstructionsFromAST(proc->instructions, &inst_index, &inst_size, expNode, constantPool, outsideScopes,
                                     procIndex, err);
         if (expNode->kind == NODE_FUN_CALL) {
@@ -727,16 +728,12 @@ static int generateStatement(int& index, FunCallPitchTable& pitchTable, Constant
                 Instruction popInst = {};
                 popInst.opcode = OP_POP;
                 proc->instructions.push_back(popInst);
-                inst_index++;
-                inst_size++;
             }
         }
         if (*err != 0) {
             freeAST(expNode);
             return 255;
         }
-        inst_index++;
-        proc->instructionSize = proc->instructions.size();
         freeAST(expNode);
     } else if (wcscmp(currentToken.value, L"var") == 0) {  // var:id[:type][=exp];
         Symbol newVar = {};
@@ -849,7 +846,7 @@ static int generateStatement(int& index, FunCallPitchTable& pitchTable, Constant
                 newVar.size = 8;
                 if (function->bodyTokens[index + 1].type == TOK_OPR_REFER) {
                     newVar.type.kind = IR_DT_FLOAT_REFER;
-                    newVar.size = 4;   //实为void*大小
+                    newVar.size = 4;  // 实为void*大小
                     index++;
                 } else if (function->bodyTokens[index + 1].type == TOK_OPR_LBRACKET) {
                     if (index + 2 >= function->body_token_count) {
@@ -877,7 +874,6 @@ static int generateStatement(int& index, FunCallPitchTable& pitchTable, Constant
                     newVar.type.kind = IR_DT_CHAR_REFER;
                     index++;
                 } else if (function->bodyTokens[index + 1].type == TOK_OPR_LBRACKET) {
-
                     if (index + 2 >= function->body_token_count) {
                         setError(ERR_TYPE, currentToken.line, NULL);
                         *err = 255;
@@ -981,7 +977,7 @@ static int generateStatement(int& index, FunCallPitchTable& pitchTable, Constant
 #endif
         localeSymbolTable.vars.push_back(newVar);
         uint32_t varSize = (uint32_t)getVarSize(newVar.type, currentProgram->classes, currentProgram->class_count);
-        //if (stackSize + varSize > stackSize) stackSize += varSize;
+        // if (stackSize + varSize > stackSize) stackSize += varSize;
         if (localVarSize + 1 > localVarSize) localVarSize++;
 
     } else if (wcscmp(currentToken.value, L"定义变量") == 0) {  // 定义变量: <id> [, 类型是:<kw>|<id>]];
@@ -1247,7 +1243,7 @@ static int generateStatement(int& index, FunCallPitchTable& pitchTable, Constant
 #endif
         localeSymbolTable.vars.push_back(newVar);
         uint32_t varSize = (uint32_t)getVarSize(newVar.type, currentProgram->classes, currentProgram->class_count);
-        //if (stackSize + varSize > stackSize) stackSize += varSize;
+        // if (stackSize + varSize > stackSize) stackSize += varSize;
         if (localVarSize + 1 > localVarSize) localVarSize++;
 
     } else if (wcscmp(currentToken.value, L"repeat") == 0) {  // 循环 ::= repeat-> 语句|块 [until:exp]
@@ -1317,7 +1313,7 @@ static int generateStatement(int& index, FunCallPitchTable& pitchTable, Constant
         jmpInst.params[0].type = PARAM_TYPE_INDEX;
         proc->instructions.push_back(jmpInst);
         // 条件判断
-    } else if (wcscmp(currentToken.value, L"if") == 0) {  // ::= if: <exp> -> <block|statement>
+    } else if (wcscmp(currentToken.value, L"if") == 0 || wcscmp(currentToken.value, L"若") == 0) {  // ::= if|如果: <exp> -> <block|statement>
         if (index + 1 >= function->body_token_count) {
             setError(ERR_IF, currentToken.line, NULL);
             *err = 255;
@@ -1345,20 +1341,20 @@ static int generateStatement(int& index, FunCallPitchTable& pitchTable, Constant
             if (function->bodyTokens[index].type == TOK_OPR_POINT) break;
         }
         // 分析表达式
-        ASTNode* expNode = parseExpression(function->bodyTokens, &expIndex, index, pitchTable, &localeSymbolTable, outsideScopes, localeScopeIndex, err);
+        ASTNode* expNode = parseExpression(function->bodyTokens, &expIndex, index, pitchTable, &localeSymbolTable,
+                                           outsideScopes, localeScopeIndex, err);
         if (*err != 0 || !expNode) {
             delete (proc);
             return 255;
         }
-        int inst_index = proc->instructionSize;
-        int inst_size = proc->instructionSize;
+        int inst_index = proc->instructions.size();
+        int inst_size = proc->instructions.size();
         generateInstructionsFromAST(proc->instructions, &inst_index, &inst_size, expNode, constantPool, outsideScopes,
                                     procIndex, err);
         if (*err != 0) {
             freeAST(expNode);
             return 255;
         }
-        proc->instructionSize = inst_index;
         freeAST(expNode);
         // 分析语句
         if (function->bodyTokens[index].type != TOK_OPR_POINT) {
@@ -1374,9 +1370,28 @@ static int generateStatement(int& index, FunCallPitchTable& pitchTable, Constant
             return 255;
         }
         index++;  // 指向语句或块
+
+        // 生成OP_JMP_CONDITION指令,  ########后面要把第二个参数补回来#########
+        //跳转地址应指向JMP后的一个指令
+        uint32_t jmpAddr = (uint32_t)(proc->instructions.size()+1);
+        Instruction jmpInst = {};
+        jmpInst.opcode = OP_JMP_CONDITION;
+        jmpInst.params[0].type = PARAM_TYPE_INDEX;
+        memcpy(jmpInst.params[0].value, &jmpAddr, sizeof(uint32_t));
+        proc->instructions.push_back(jmpInst);
+        int jmpInstIndex = proc->instructions.size()-1;
+        //生成块或语句的目标代码
         generateStatement(index, pitchTable, constantPool, all_functions, currentProgram, all_function_count, function,
                           localeSymbolTable, outsideScopes, localeScopeIndex, proc, procIndex, stackSize, localVarSize, err);
-        // 生成OP_JMP_CONDITION指令
+        if(jmpAddr == (uint32_t)(proc->instructions.size())) {  //用户写了空语句，那就塞个NOP
+            Instruction NOPInst = {};
+            proc->instructions.push_back(NOPInst);
+        }
+        proc->instructions.at(jmpInstIndex).params[1].type = PARAM_TYPE_INDEX;
+        uint32_t falseJmpAddr = (uint32_t)proc->instructions.size();
+        Instruction NOPInst = {};   //塞NOP防越界
+        proc->instructions.push_back(NOPInst);
+        memcpy(proc->instructions.at(jmpInstIndex).params[1].value, &falseJmpAddr, sizeof(uint32_t));
     }
     return 0;
 }
@@ -1482,7 +1497,7 @@ void generateInstructionsFromAST(std::vector<Instruction>& instructions, int* in
         }
         // 关联指令
 #ifdef HX_DEBUG
-        log(L"关联指令STORE_VAR 目标变量名：%ls", node->data.binary.varName? node->data.binary.varName: L"(null)");
+        log(L"关联指令STORE_VAR 目标变量名：%ls", node->data.binary.varName ? node->data.binary.varName : L"(null)");
 #endif
         for (int i = symbols.size() - 1; i >= 0; i--) {
             int varIndex = -1;
@@ -1589,7 +1604,6 @@ void generateInstructionsFromAST(std::vector<Instruction>& instructions, int* in
         }
         (*inst_index)++;
     } else if (node->kind == NODE_FUN_CALL) {
-
         if (node->data.funCall.arg_count == 0) {
         } else {
             // 生成参数指令

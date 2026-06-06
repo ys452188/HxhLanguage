@@ -95,7 +95,7 @@ typedef struct IR_Program {
 
 // 变量处理：存储各变量与其对应的指令，用于回填、标记是否有用
 class Symbol {
-public:
+   public:
     bool isUsed;
     wchar_t* name;
     bool isTypeKnown;
@@ -106,7 +106,7 @@ public:
     int procIndex;
 
     Symbol() : name(nullptr), isTypeKnown(false), size(0), offest(0) {}
-    //拷贝构造函数
+    // 拷贝构造函数
     Symbol(const Symbol& other) {
         this->isTypeKnown = other.isTypeKnown;
         this->type = other.type;
@@ -121,8 +121,8 @@ public:
         this->procIndex = other.procIndex;
     }
 
-    //赋值运算符实现
-    //圣杯写法
+    // 赋值运算符实现
+    // 圣杯写法
     Symbol& operator=(Symbol other) {
         // 把当前对象的内容和other进行大交换
         std::swap(this->name, other.name);
@@ -147,7 +147,7 @@ typedef struct SymbolTable {
     uint32_t var_size;
 } SymbolTable;
 class FunCallPitch {  // 回填CALL指令,被指向
-public:
+   public:
     FunCallPitch(IR_Function* ir_fun) noexcept : fun(ir_fun), index(-1) {}
     IR_Function* fun;
     int index;
@@ -155,7 +155,7 @@ public:
 class FunCallPitchTable {
     std::vector<FunCallPitch*> pitches;
 
-public:
+   public:
     FunCallPitch* enter(IR_Function* fun) {
         for (int i = 0; i < pitches.size(); i++) {
             if (pitches.at(i)->fun == fun) return pitches.at(i);
@@ -209,8 +209,8 @@ typedef struct ASTNode {
         } unary;  // NEG, POS
         struct {
             int op;
-            wchar_t* varName;   //mov需要
-        } binary;  // ADD, SUB, MUL, DIV, MOV, STRING_CONCAT
+            wchar_t* varName;  // mov需要
+        } binary;              // ADD, SUB, MUL, DIV, MOV, STRING_CONCAT
         struct {
             wchar_t* name;
             FunCallPitch* pitch;

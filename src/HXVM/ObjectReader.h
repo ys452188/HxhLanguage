@@ -104,12 +104,12 @@ inline static wchar_t* readWstring(FILE* file) {
     if (fread(&byteLen, sizeof(byteLen), 1, file) != 1) {
         fwprintf(errorStream, ERR_LABEL L"读字符串时发生错误！\n");
         return nullptr;
-        }
+    }
     if (byteLen == 0) return nullptr;
 
     uint32_t charCount = byteLen / sizeof(uint16_t);
 
-    uint16_t* buf = (uint16_t*)malloc(byteLen+sizeof(uint16_t));
+    uint16_t* buf = (uint16_t*)malloc(byteLen + sizeof(uint16_t));
     if (!buf) return nullptr;
 
     if (fread(buf, sizeof(uint16_t), charCount, file) != charCount) {
@@ -117,7 +117,7 @@ inline static wchar_t* readWstring(FILE* file) {
         return nullptr;
     }
 
-    wchar_t* wstr = (wchar_t*)calloc(charCount+1, sizeof(wchar_t));
+    wchar_t* wstr = (wchar_t*)calloc(charCount + 1, sizeof(wchar_t));
     if (!wstr) {
         free(buf);
         return nullptr;

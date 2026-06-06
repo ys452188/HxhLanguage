@@ -1,3 +1,26 @@
+定义函数：主函数（无参数）->{
+    定义变量：新变量，类型是:整型。
+    新变量 = 114。
+    
+    var:newVar1:int。
+    若:新变量-1-> {
+        newVar1 = 114;
+    }    
+    
+    newVar1 = f(newVar1, 新变量);
+    __hx_write_string__ "Hello, HxHLanguage!\n"。
+   
+    返回：0。  
+}
+fun:f(num:int, num1:int)-> {
+    __hx_write_string__ "call f()\n";
+    ret: 1919810 + num × num1;
+}
+fun:g()-> {
+    __hx_write_string__ "Hello, HxHLanguage!\n"。
+    g()。
+}
+
 定义类: A -> {
     公有成员:
     定义变量:a，类型是:B;
@@ -14,24 +37,4 @@ class: C {
 }
 class: A->D {
     var:a:str;
-}
-定义函数：主函数（无参数）->{
-    定义变量：新变量，类型是:整型。
-    新变量 = 114。
-    
-    var:newVar1:int。
-    newVar1 = 114;
-    
-    newVar1 = f(newVar1);
-    __hx_write_string__ "Hello, HxHLanguage!\n"。
-   
-    返回：0。  
-}
-fun:f(num:int)-> {
-    __hx_write_string__ "call f()\n";
-    ret:1919810+num;
-}
-fun:g()-> {
-    __hx_write_string__ "Hello, HxHLanguage!\n"。
-    g()。
 }

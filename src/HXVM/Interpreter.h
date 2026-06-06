@@ -41,10 +41,10 @@ public:
 #ifdef HX_DEBUG
             wprintf(LOG_LABEL L"释放内存 %p\n", this->heapMemoryBlocks[freeableMemIndex[i]]);
 #endif
-            if(this->heapMemoryBlocks[freeableMemIndex[i]]) free(this->heapMemoryBlocks[freeableMemIndex[i]]);
+            if (this->heapMemoryBlocks[freeableMemIndex[i]]) free(this->heapMemoryBlocks[freeableMemIndex[i]]);
             this->heapMemoryBlocks[freeableMemIndex[i]] = NULL;
         }
-        while(!freeableMemIndex.empty()) {
+        while (!freeableMemIndex.empty()) {
             freeableMemIndex.pop_back();
         }
     }
@@ -107,10 +107,10 @@ typedef struct CallFrame {  // 栈帧
 // 栈帧压栈
 inline static int pushCallFrame(Procedure& proc, HxVector<CallFrame*>& frames) {
     CallFrame* frame = (CallFrame*)memoryAllocer.hxMalloc(sizeof(CallFrame));
-    if(frame == NULL) return -1;
+    if (frame == NULL) return -1;
     frame->proc = &proc;
-    #ifdef HX_DEBUG
-        wprintf(LOG_LABEL L"过程使用栈内存大小：%d\n", proc.stackSize);
+#ifdef HX_DEBUG
+    wprintf(LOG_LABEL L"过程使用栈内存大小：%d\n", proc.stackSize);
 #endif
     frame->stack = (char*)(memoryAllocer.hxMalloc(proc.stackSize));
     frame->instIndex = 0;
@@ -128,7 +128,7 @@ typedef enum OpStackType {
     TYPE_CHAR,
     TYPE_BOOL,
     TYPE_STRING,
-    TYPE_ADDRESS,
+    TYPE_ADDRESS,    //size = 4
 } StackType;
 typedef struct _OpStack {
     OpStackType type;
@@ -144,8 +144,8 @@ typedef struct Symbol {
     void* address;
 } Symbol;
 
-inline static int interpretInstruction(Instruction& inst, OpStack& opStack, char*& stack, ObjectCode& obj,
-                                       int& instIndex, int& frameTop, HxVector<CallFrame*>& frames);
+inline static int interpretInstruction(Instruction& inst, OpStack& opStack, char*& stack, ObjectCode& obj, int& instIndex,
+                                       int& frameTop, HxVector<CallFrame*>& frames);
 int interpret(ObjectCode& obj, int& ret, int& err) noexcept {
 #ifdef HX_DEBUG
     wprintf(LOG_LABEL L"开始解释\n");
@@ -165,13 +165,12 @@ int interpret(ObjectCode& obj, int& ret, int& err) noexcept {
 
     while (!frames.empty() && (!shouldExit.load())) {
         if (interpretInstruction(frames[(frameTop)]->proc->instructions[(frames[(frameTop)]->instIndex)], opStack,
-                                 frames[(frameTop)]->stack, obj, frames[(frameTop)]->instIndex,
-                                 frameTop, frames))
+                                 frames[(frameTop)]->stack, obj, frames[(frameTop)]->instIndex, frameTop, frames))
             return -1;
     }
 
-    if(opStack.top -1 < OP_STACK_SIZE && opStack.top -1 >= 0) {
-        ret = (int)*((int32_t*)opStack.opStack[opStack.top -1].value);
+    if (opStack.top - 1 < OP_STACK_SIZE && opStack.top - 1 >= 0) {
+        ret = (int)*((int32_t*)opStack.opStack[opStack.top - 1].value);
         wprintf(INFO_LABEL L"主函数返回：%d\n", ret);
     }
 
@@ -238,8 +237,8 @@ static inline int promoteNumeric(_OpStack& a, _OpStack& b) {
     return 0;
 }
 
-inline int interpretInstruction(Instruction& inst, OpStack& opStack, char*& stack, ObjectCode& obj,
-                                int& instIndex, int& frameTop, HxVector<CallFrame*>& frames) {
+inline int interpretInstruction(Instruction& inst, OpStack& opStack, char*& stack, ObjectCode& obj, int& instIndex,
+                                int& frameTop, HxVector<CallFrame*>& frames) {
 #ifdef HX_DEBUG
     // wprintf(LOG_LABEL L"__________________________________________\n");
 #endif
@@ -358,6 +357,9 @@ inline int interpretInstruction(Instruction& inst, OpStack& opStack, char*& stac
         break;
     }
     case OP_SUB: {
+#ifdef HX_DEBUG
+        wprintf(LOG_LABEL L"相减\n");
+#endif
         if (opStack.top < 2) {
             fwprintf(errorStream, ERR_LABEL L"栈中操作数不够\n");
             return -1;
@@ -388,6 +390,9 @@ inline int interpretInstruction(Instruction& inst, OpStack& opStack, char*& stac
         break;
     }
     case OP_MUL: {
+#ifdef HX_DEBUG
+        wprintf(LOG_LABEL L"相乘\n");
+#endif
         if (opStack.top < 2) {
             fwprintf(errorStream, ERR_LABEL L"栈中操作数不够\n");
             return -1;
@@ -441,20 +446,20 @@ inline int interpretInstruction(Instruction& inst, OpStack& opStack, char*& stac
         // 插入栈帧
         if (pushCallFrame(proc, frames) != 0) return -1;
         frameTop++;
-        //复制实参
+        // 复制实参
 #ifdef HX_DEBUG
         wprintf(LOG_LABEL L"调用->从栈中复制参数\n");
 #endif
-        uint32_t currentParamOffset = 0; // 从子函数栈底偏移0开始铺参数
-        for (int i = opStack.top-argCount; i < opStack.top; i++) {
+        uint32_t currentParamOffset = 0;  // 从子函数栈底偏移0开始铺参数
+        for (int i = opStack.top - argCount; i < opStack.top; i++) {
             memcpy(frames[frameTop]->stack + currentParamOffset, opStack.opStack[i].value, opStack.opStack[i].size);
 #ifdef HX_DEBUG
-        wprintf(LOG_LABEL L"调用->从栈中复制参数->%d byte, offest: %d \n", opStack.opStack[i].size, currentParamOffset);
+            wprintf(LOG_LABEL L"调用->从栈中复制参数->%d byte, offest: %d \n", opStack.opStack[i].size, currentParamOffset);
 #endif
-            currentParamOffset += opStack.opStack[i].size; // 铺完一个，挪动指针
+            currentParamOffset += opStack.opStack[i].size;  // 铺完一个，挪动指针
         }
-        opStack.top -= argCount; //弹出参数
-        //调用者跳过CAL以防无限递归
+        opStack.top -= argCount;  // 弹出参数
+        // 调用者跳过CAL以防无限递归
         frames[frameTop - 1]->instIndex++;
         return 0;
         break;
@@ -482,7 +487,7 @@ inline int interpretInstruction(Instruction& inst, OpStack& opStack, char*& stac
         wprintf(LOG_LABEL L"弾出一个元素\n");
 #endif
         if (opStack.top <= 0) {
-            fwprintf(errorStream, ERR_LABEL L"栈中没有元素，因此无法执行OP_POP\n");
+            fwprintf(errorStream, ERR_LABEL L"栈中空荡荡的喵，因此不能OP_POP喵\n");
             return -1;
         }
         opStack.top--;
@@ -604,6 +609,9 @@ inline int interpretInstruction(Instruction& inst, OpStack& opStack, char*& stac
         return 0;
     }
     case OP_STORE_VAR: {
+#ifdef HX_DEBUG
+        wprintf(LOG_LABEL L"存储变量\n");
+#endif
         if (opStack.top > OP_STACK_SIZE || opStack.top == 0) {
             fwprintf(errorStream, ERR_LABEL L"停♡......快停下♡人家栈都被......\n");
             return -1;
@@ -620,6 +628,9 @@ inline int interpretInstruction(Instruction& inst, OpStack& opStack, char*& stac
         break;
     }
     case OP_LOAD_VAR: {
+#ifdef HX_DEBUG
+        wprintf(LOG_LABEL L"读取变量\n");
+#endif
         if (opStack.top >= OP_STACK_SIZE) {
             fwprintf(errorStream, ERR_LABEL L"停♡......快停下♡人家栈都被......\n");
             return -1;
@@ -677,6 +688,77 @@ inline int interpretInstruction(Instruction& inst, OpStack& opStack, char*& stac
         }
 #endif
         opStack.top++;
+        break;
+    }
+    case OP_JMP_CONDITION: {
+#ifdef HX_DEBUG
+        wprintf(LOG_LABEL L"条件跳转\n");
+#endif
+        if(opStack.top <= 0) {
+            fwprintf(errorStream, ERR_LABEL L"栈中空荡荡的喵，因此不能OP_JMP_CONDITION喵\n");
+            return -1;
+        }
+        bool condition = false;
+        //判断栈顶条件
+        switch(opStack.opStack[opStack.top-1].type) {
+        case TYPE_INT: {
+            int32_t val = 0;
+            memcpy(&val, opStack.opStack[opStack.top-1].value, opStack.opStack[opStack.top-1].size);
+            if(val) condition = true;
+            break;
+        }
+        case TYPE_FLOAT: {
+            double val = 0;
+            memcpy(&val, opStack.opStack[opStack.top-1].value, opStack.opStack[opStack.top-1].size);
+            if(val) condition = true;
+            break;
+        }
+        case TYPE_CHAR: {
+            uint16_t val = (uint16_t)(L'\0');
+            memcpy(&val, opStack.opStack[opStack.top-1].value, opStack.opStack[opStack.top-1].size);
+            if((wchar_t)val != L'\0') condition = true;
+            break;
+        }
+        case TYPE_BOOL: {
+            char val = (char)0;
+            memcpy(&val, opStack.opStack[opStack.top-1].value, opStack.opStack[opStack.top-1].size);
+            if(val) condition = true;
+            break;
+        }
+        case TYPE_STRING: {   //void* size = 4
+            uint32_t val = 0;
+            memcpy(&val, opStack.opStack[opStack.top-1].value, opStack.opStack[opStack.top-1].size);
+            if(val) condition = true;
+            break;
+        }
+        case TYPE_ADDRESS: {   //void* size = 4
+            uint32_t val = 0;
+            memcpy(&val, opStack.opStack[opStack.top-1].value, opStack.opStack[opStack.top-1].size);
+            if(val) condition = true;
+            break;
+        }
+        }
+
+        if(condition) {
+            uint32_t trueAddr = 0U;
+            memcpy(&trueAddr, inst.params[0].value, sizeof(uint32_t));
+            instIndex = (int)trueAddr;
+#ifdef HX_DEBUG
+            wprintf(LOG_LABEL L"条件跳转->true-> %d\n", instIndex);
+#endif
+            return 0;
+        } else {
+            uint32_t falseAddr = 0U;
+            memcpy(&falseAddr, inst.params[1].value, sizeof(uint32_t));
+            instIndex = (int)falseAddr;
+#ifdef HX_DEBUG
+            wprintf(LOG_LABEL L"条件跳转->false-> %d\n", instIndex);
+#endif
+            return 0;
+        }
+        break;
+    }
+    case OP_NOP: {
         break;
     }
     default: {
