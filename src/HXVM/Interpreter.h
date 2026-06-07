@@ -379,11 +379,18 @@ inline int interpretInstruction(Instruction& inst, OpStack& opStack, char*& stac
             result.type = TYPE_INT;
             result.size = sizeof(int32_t);
             memcpy(result.value, &res, sizeof(int32_t));
+
+#ifdef HX_DEBUG
+            wprintf(LOG_LABEL L"结果：%d\n", res);
+#endif
         } else {
             double res = *(double*)lhs.value - *(double*)rhs.value;
             result.type = TYPE_FLOAT;
             result.size = sizeof(double);
             memcpy(result.value, &res, sizeof(double));
+#ifdef HX_DEBUG
+            wprintf(LOG_LABEL L"结果：%lf\n", res);
+#endif
         }
 
         opStack.opStack[opStack.top++] = result;
@@ -412,13 +419,139 @@ inline int interpretInstruction(Instruction& inst, OpStack& opStack, char*& stac
             result.type = TYPE_INT;
             result.size = sizeof(int32_t);
             memcpy(result.value, &res, sizeof(int32_t));
+#ifdef HX_DEBUG
+            wprintf(LOG_LABEL L"结果：%d\n", res);
+#endif
         } else {
             double res = (*(double*)lhs.value) * (*(double*)rhs.value);
             result.type = TYPE_FLOAT;
             result.size = sizeof(double);
             memcpy(result.value, &res, sizeof(double));
+#ifdef HX_DEBUG
+            wprintf(LOG_LABEL L"结果：%lf\n", res);
+#endif
         }
 
+        opStack.opStack[opStack.top++] = result;
+        break;
+    }
+    case OP_DIV: {
+#ifdef HX_DEBUG
+        wprintf(LOG_LABEL L"相除\n");
+#endif
+        if (opStack.top < 2) {
+            fwprintf(errorStream, ERR_LABEL L"栈中操作数不够\n");
+            return -1;
+        }
+        _OpStack rhs = opStack.opStack[--opStack.top];
+        _OpStack lhs = opStack.opStack[--opStack.top];
+
+        if (promoteNumeric(lhs, rhs) != 0) {
+            fwprintf(errorStream, ERR_LABEL L"不支持的除法操作数类型\n");
+            return -1;
+        }
+
+        _OpStack result = {};
+
+        if (lhs.type == TYPE_INT) {
+            if((*(int32_t*)rhs.value) == 0) {
+                fwprintf(errorStream, ERR_LABEL L"不能除以0喵\n");
+                return -1;
+            }
+            int32_t res = (*(int32_t*)lhs.value) / (*(int32_t*)rhs.value);
+            result.type = TYPE_INT;
+            result.size = sizeof(int32_t);
+            memcpy(result.value, &res, sizeof(int32_t));
+#ifdef HX_DEBUG
+            wprintf(LOG_LABEL L"结果：%d\n", res);
+#endif
+        } else {
+            if((*(double*)rhs.value) == 0) {
+                fwprintf(errorStream, ERR_LABEL L"不能除以0喵\n");
+                return -1;
+            }
+            double res = (*(double*)lhs.value) / (*(double*)rhs.value);
+            result.type = TYPE_FLOAT;
+            result.size = sizeof(double);
+            memcpy(result.value, &res, sizeof(double));
+#ifdef HX_DEBUG
+            wprintf(LOG_LABEL L"结果：%lf\n", res);
+#endif
+        }
+
+        opStack.opStack[opStack.top++] = result;
+        break;
+    }
+    case OP_EQU: {
+#ifdef HX_DEBUG
+        wprintf(LOG_LABEL L"相等\n");
+#endif
+        if (opStack.top < 2) {
+            fwprintf(errorStream, ERR_LABEL L"栈中操作数不够\n");
+            return -1;
+        }
+        _OpStack& rhs = opStack.opStack[--opStack.top];
+        _OpStack& lhs = opStack.opStack[--opStack.top];
+
+        if (promoteNumeric(lhs, rhs) != 0) {
+            fwprintf(errorStream, ERR_LABEL L"不支持的相等操作数类型\n");
+            return -1;
+        }
+
+        _OpStack result = {};
+
+        if (lhs.type == TYPE_INT && rhs.type == TYPE_INT) {
+            char res = ((*(int32_t*)lhs.value) == (*(int32_t*)rhs.value));
+            result.type = TYPE_BOOL;
+            result.size = sizeof(char);
+            memcpy(result.value, &res, sizeof(char));
+#ifdef HX_DEBUG
+            wprintf(LOG_LABEL L"结果：%d\n", (int)res);
+#endif
+        } else if (lhs.type == TYPE_FLOAT && rhs.type == TYPE_FLOAT) {
+            char res = ((*(double*)lhs.value) == (*(double*)rhs.value));
+            result.type = TYPE_BOOL;
+            result.size = sizeof(char);
+            memcpy(result.value, &res, sizeof(char));
+#ifdef HX_DEBUG
+            wprintf(LOG_LABEL L"结果：%d\n", (int)res);
+#endif
+        } else if(lhs.type == TYPE_BOOL || rhs.type == TYPE_BOOL) {
+            //非0的任何布尔值视作相等
+            char num1 = 0;
+            char num2 = 0;
+            for(int i = 0; i < rhs.size; i++) {
+                if(rhs.value[i] != 0) {
+                    num1 = 1;
+                    break;
+                }
+            }
+            for(int i = 0; i < lhs.size; i++) {
+                if(lhs.value[i] != 0) {
+                    num2 = 1;
+                    break;
+                }
+            }
+            char res = (num1 == num2);
+            result.type = TYPE_BOOL;
+            result.size = sizeof(char);
+            memcpy(result.value, &res, sizeof(char));
+#ifdef HX_DEBUG
+            wprintf(LOG_LABEL L"结果：%d\n", (int)res);
+#endif
+        } else {
+            int compareSize = 0;
+            if(lhs.size > rhs.size) {
+                compareSize = lhs.size;
+            } else compareSize = rhs.size;
+            char res = memcmp(lhs.value, rhs.value, compareSize)? 1:0;
+            result.type = TYPE_BOOL;
+            result.size = sizeof(char);
+            memcpy(result.value, &res, sizeof(char));
+#ifdef HX_DEBUG
+            wprintf(LOG_LABEL L"结果：%d\n", (int)res);
+#endif
+        }
         opStack.opStack[opStack.top++] = result;
         break;
     }

@@ -136,7 +136,7 @@ static void listObjectCode_Proc(Procedure* proc) {
             fwprintf(logStream, L"\t%03u: \33[1;34m OP_INT_TO_CHAR\33[0m\n", i);
             break;
         case OP_INT_TO_FLOAT:
-            fwprintf(logStream, L"\t%03u: \33[1;34m OP_INT_TO_CHAR\33[0m\n", i);
+            fwprintf(logStream, L"\t%03u: \33[1;34m OP_INT_TO_FLOAT\33[0m\n", i);
             break;
         case OP_CHAR_TO_FLOAT:
             fwprintf(logStream,
@@ -170,6 +170,12 @@ static void listObjectCode_Proc(Procedure* proc) {
                      L"\t%03u: \33[1;34m OP_JMP_CONDITION "
                      L"(trueAddr)%u  (false)%u\33[0m\n",
                      i, *((uint32_t*)ins.params[0].value), *((uint32_t*)ins.params[1].value));
+            break;
+        case OP_EQU:
+            (logStream, L"\t%03u: \33[1;34m OP_EQU\33[0m\n", i);
+            break;
+        case OP_NEQU:
+            (logStream, L"\t%03u: \33[1;34m OP_NEQU\33[0m\n", i);
             break;
         default:
             fwprintf(logStream, L"\t%03u: \33[1;32mOP_NOP\33[0m\n", i);
@@ -564,6 +570,7 @@ Procedure* generateFunction(int procIndex, IR_Function* function, IR_Program* cu
             return NULL;
         index++;
     }
+    proc->instructionSize = proc->instructions.size();
     function->proc = proc;
     return proc;
 }
@@ -1460,11 +1467,11 @@ void generateInstructionsFromAST(std::vector<Instruction>& instructions, int* in
             (*inst_index)++;
             (*inst_size)++;
         }*/
-    } else if (node->kind == NODE_BINARY && node->data.binary.op == 4) {  // 赋值
+    } else if (node->kind == NODE_BINARY && node->data.binary.op == BIN_OPR_SET) {  // 赋值
 #ifdef HX_DEBUG
         log(L"分析赋值语句");
 #endif
-        if ((node->left->kind == NODE_BINARY && node->left->data.binary.op != 4)  // 不能给除赋值表达式以外的赋值
+        if ((node->left->kind == NODE_BINARY && node->left->data.binary.op != BIN_OPR_SET)  // 不能给除赋值表达式以外的赋值
                 || (node->left->kind == NODE_VALUE)) {
             *err = 255;
             setError(ERR_EXP, node->token->line, NULL);
@@ -1519,43 +1526,41 @@ void generateInstructionsFromAST(std::vector<Instruction>& instructions, int* in
         if (*err != 0) {
             return;
         }
-        if (node->left->typeCast != OP_NOP) {
-            Instruction typeCastInst = {};
-            typeCastInst.opcode = node->left->typeCast;
-            instructions.push_back(typeCastInst);
-            (*inst_index)++;
-            (*inst_size)++;
-        }
         // 生成右子树指令
         generateInstructionsFromAST(instructions, inst_index, inst_size, node->right, constantPool, symbols, procIndex, err);
         if (*err != 0) {
             return;
         }
-        if (node->right->typeCast != OP_NOP) {
-            Instruction typeCastInst = {};
-            typeCastInst.opcode = node->right->typeCast;
-            instructions.push_back(typeCastInst);
-            (*inst_index)++;
-            (*inst_size)++;
-        }
         // 生成二元运算指令
         switch (node->data.binary.op) {
-        case 0:  // ADD
+        case BIN_OPR_ADD:  // ADD
             newInst.opcode = OP_ADD;
             break;
-        case 1:  // SUB
+        case BIN_OPR_SUB:  // SUB
             newInst.opcode = OP_SUB;
             break;
-        case 2:  // MUL
+        case BIN_OPR_MUL:  // MUL
             newInst.opcode = OP_MUL;
             break;
-        case 3:  // DIV
+        case BIN_OPR_DIV:  // DIV
             newInst.opcode = OP_DIV;
             break;
-        case 5: {  // STRING_CONCAT
+        case BIN_OPR_STRING_CONCAT: {  // STRING_CONCAT
             newInst.opcode = OP_STRING_CONCAT;
             break;
         }
+        case BIN_OPR_EQU:
+            newInst.opcode = OP_EQU;
+            break;
+        case BIN_OPR_NEQU:
+            newInst.opcode = OP_NEQU;
+            break;
+        case BIN_OPR_GT:
+            newInst.opcode = OP_GT;
+            break;
+        case BIN_OPR_LT:
+            newInst.opcode = OP_LT;
+            break;
         default:
             *err = -1;
             return;
@@ -1603,6 +1608,19 @@ void generateInstructionsFromAST(std::vector<Instruction>& instructions, int* in
             }
         }
         (*inst_index)++;
+        instructions.push_back(newInst);
+        (*inst_size)++;
+        if(node->typeCast != OP_NOP) {
+#ifdef HX_DEBUG
+            log(L"生成强制转换指令");
+#endif
+            Instruction castInst = {};
+            castInst.opcode = node->typeCast;
+            instructions.push_back(castInst);
+            (*inst_index)++;
+            (*inst_size)++;
+        }
+        return;
     } else if (node->kind == NODE_FUN_CALL) {
         if (node->data.funCall.arg_count == 0) {
         } else {

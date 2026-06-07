@@ -3,18 +3,23 @@
     新变量 = 114。
     
     var:newVar1:int。
-    若:新变量-1-> {
+    若:新变量==114-> {
         newVar1 = 114;
-    }    
+    }
     
     newVar1 = f(newVar1, 新变量);
     __hx_write_string__ "Hello, HxHLanguage!\n"。
+    
+    var:newFloat:float;
+    newFloat = (float)(114.514+newVar1);
+    
+    f((int)newFloat, 114);
    
     返回：0。  
 }
 fun:f(num:int, num1:int)-> {
     __hx_write_string__ "call f()\n";
-    ret: 1919810 + num × num1;
+    ret: 1919810 + num × num1 ÷ 2;
 }
 fun:g()-> {
     __hx_write_string__ "Hello, HxHLanguage!\n"。

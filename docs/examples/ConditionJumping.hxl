@@ -1,0 +1,7 @@
+fun:main()-> {
+    if: 1-1 -> {
+        __hx_write_string__ "Bye-bye, world!";
+    }
+    __hx_write_string__ "Hello, world!";
+    ret: 0;
+}

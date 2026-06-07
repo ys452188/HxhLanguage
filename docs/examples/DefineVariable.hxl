@@ -1,0 +1,8 @@
+# TODO
+<-- TODO
+// TODO
+
+fun: main(void)-> {
+    var:newVar:int;   //将被优化掉
+    ret:0;
+}

@@ -105,9 +105,10 @@ class Symbol {
     std::vector<int> instIndex;
     int procIndex;
 
-    Symbol() : name(nullptr), isTypeKnown(false), size(0), offest(0) {}
+    Symbol() : isUsed(false), name(nullptr), isTypeKnown(false), size(0), offest(0) {}
     // 拷贝构造函数
     Symbol(const Symbol& other) {
+        this->isUsed = other.isUsed;
         this->isTypeKnown = other.isTypeKnown;
         this->type = other.type;
         this->size = other.size;
@@ -132,6 +133,7 @@ class Symbol {
         std::swap(this->offest, other.offest);
         std::swap(this->instIndex, other.instIndex);
         std::swap(this->procIndex, other.procIndex);
+        std::swap(this->isUsed, other.isUsed);
         return *this;
     }
 

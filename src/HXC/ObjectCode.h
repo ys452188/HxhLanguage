@@ -18,10 +18,16 @@ enum {
     OP_POP,        // 弹出
     OP_STORE_VAR,  // 将栈顶值存入变量  OP_STORE_VAR <offest(u32)>
     // <copySize(u32)>
+    
     OP_ADD,
     OP_SUB,
     OP_MUL,
-    OP_DIV,
+    OP_DIV,            //次栈顶除栈顶
+    OP_EQU,            //必须知道两参数的类型
+    OP_NEQU,           //必须知道两参数的类型
+    OP_GT,             // 次栈顶 > 栈顶  -> true
+    OP_LT,             // 次栈顶 < 栈顶  -> true
+    
     OP_JMP,            // OP_JMP <instAddr(u32)>
     // JMP_CONDITION <栈顶为真时跳转的地址(index u32)> <为假时跳转的地址(index u32)>
     OP_JMP_CONDITION,
@@ -209,16 +215,16 @@ static int writeInstruction(Instruction& inst, FILE* file) {
         fwprintf(logStream, L"\33[1;34m OP_INT_TO_CHAR\33[0m\n");
         break;
     case OP_INT_TO_FLOAT:
-        fwprintf(logStream, L"\33[1;34m OP_INT_TO_CHAR\33[0m\n");
+        fwprintf(logStream, L"\33[1;34m OP_INT_TO_FLOAT\33[0m\n");
         break;
     case OP_CHAR_TO_FLOAT:
         fwprintf(logStream, L"\33[1;34m OP_CHAR_TO_FLOAT\33[0m\n");
         break;
     case OP_CHAR_TO_STRING:
-        (logStream, L"\33[1;34m OP_CHAR_TO_STRING\33[0m\n");
+        fwprintf(logStream, L"\33[1;34m OP_CHAR_TO_STRING\33[0m\n");
         break;
     case OP_FLOAT_TO_INT:
-        (logStream, L"\33[1;34m OP_FLOAT_TO_INT\33[0m\n");
+        fwprintf(logStream, L"\33[1;34m OP_FLOAT_TO_INT\33[0m\n");
         break;
     case OP_INT_TO_STRING:
         fwprintf(logStream, L"\33[1;34m OP_INT_TO_STRING\33[0m\n");
@@ -232,6 +238,9 @@ static int writeInstruction(Instruction& inst, FILE* file) {
     case OP_JMP_CONDITION:
         fwprintf(logStream, L"\33[1;34m OP_JMP_CONDITION\33[0m\n");
         break;
+    case OP_EQU:
+        fwprintf(logStream, L"\33[1;34m OP_EQU\33[0m\n");
+        break;    
     default:
         fwprintf(logStream, L"\33[1;32mOP_NOP\33[0m)\n");
     }

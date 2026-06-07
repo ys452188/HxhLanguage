@@ -1,0 +1,7 @@
+fun:main()-> {
+    repeat-> {
+        __hx_write_string__ "Ctrl+C";
+    }
+    __hx_write_string__ "Hello, world!";
+    ret: 0;
+}
