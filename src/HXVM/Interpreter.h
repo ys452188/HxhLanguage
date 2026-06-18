@@ -128,7 +128,7 @@ typedef enum OpStackType {
     TYPE_CHAR,
     TYPE_BOOL,
     TYPE_STRING,
-    TYPE_ADDRESS,    //size = 4
+    TYPE_ADDRESS,  // size = 4
 } StackType;
 typedef struct _OpStack {
     OpStackType type;
@@ -178,8 +178,8 @@ int interpret(ObjectCode& obj, int& ret, int& err) noexcept {
 }
 
 static inline int promoteNumeric(_OpStack& a, _OpStack& b) {
-    // 只处理 int / float，其它类型交给上层报错
-    if ((a.type != TYPE_INT && a.type != TYPE_FLOAT) || (b.type != TYPE_INT && b.type != TYPE_FLOAT)) {
+    // 只处理 bool / int / float，其它类型交给上层报错
+    if ((a.type != TYPE_INT && a.type != TYPE_FLOAT  && a.type != TYPE_BOOL) || (b.type != TYPE_INT && b.type != TYPE_FLOAT  && b.type != TYPE_BOOL)) {
 #ifdef HX_DEBUG
         wprintf(LOG_LABEL L"a.type: ");
         switch (a.type) {
@@ -194,6 +194,9 @@ static inline int promoteNumeric(_OpStack& a, _OpStack& b) {
             break;
         case TYPE_CHAR:
             wprintf(L"char(u16)");
+            break;
+        case TYPE_BOOL:
+            wprintf(L"bool");
             break;
         }
         wprintf(L"\n");
@@ -211,6 +214,9 @@ static inline int promoteNumeric(_OpStack& a, _OpStack& b) {
         case TYPE_CHAR:
             wprintf(L"char(u16)");
             break;
+        case TYPE_BOOL:
+            wprintf(L"bool");
+            break;
         }
         wprintf(L"\n");
 #endif
@@ -225,9 +231,21 @@ static inline int promoteNumeric(_OpStack& a, _OpStack& b) {
             memcpy(a.value, &d, sizeof(double));
             a.type = TYPE_FLOAT;
             a.size = sizeof(double);
+        } else if (a.type == TYPE_BOOL) {
+            char v = *(char*)a.value;
+            double d = (double)v;
+            memcpy(a.value, &d, sizeof(double));
+            a.type = TYPE_FLOAT;
+            a.size = sizeof(double);
         }
         if (b.type == TYPE_INT) {
             int32_t v = *(int32_t*)b.value;
+            double d = (double)v;
+            memcpy(b.value, &d, sizeof(double));
+            b.type = TYPE_FLOAT;
+            b.size = sizeof(double);
+        } else if (b.type == TYPE_BOOL) {
+            char v = *(char*)b.value;
             double d = (double)v;
             memcpy(b.value, &d, sizeof(double));
             b.type = TYPE_FLOAT;
@@ -321,7 +339,7 @@ inline int interpretInstruction(Instruction& inst, OpStack& opStack, char*& stac
         wprintf(LOG_LABEL L"相加\n");
 #endif
         if (opStack.top < 2) {
-            fwprintf(errorStream, ERR_LABEL L"栈中操作数不够\n");
+            fwprintf(errorStream, ERR_LABEL L"栈中操作数还不够喵~就一点点操作数还想运算，可真是个杂鱼喵~\n");
             return -1;
         }
         _OpStack rhs = opStack.opStack[--opStack.top];
@@ -361,7 +379,7 @@ inline int interpretInstruction(Instruction& inst, OpStack& opStack, char*& stac
         wprintf(LOG_LABEL L"相减\n");
 #endif
         if (opStack.top < 2) {
-            fwprintf(errorStream, ERR_LABEL L"栈中操作数不够\n");
+            fwprintf(errorStream, ERR_LABEL L"栈中操作数还不够喵~就一点点操作数还想运算，可真是个杂鱼喵~\n");
             return -1;
         }
         _OpStack rhs = opStack.opStack[--opStack.top];
@@ -401,14 +419,14 @@ inline int interpretInstruction(Instruction& inst, OpStack& opStack, char*& stac
         wprintf(LOG_LABEL L"相乘\n");
 #endif
         if (opStack.top < 2) {
-            fwprintf(errorStream, ERR_LABEL L"栈中操作数不够\n");
+            fwprintf(errorStream, ERR_LABEL L"栈中操作数还不够喵~就一点点操作数还想运算，可真是个杂鱼喵~\n");
             return -1;
         }
         _OpStack rhs = opStack.opStack[--opStack.top];
         _OpStack lhs = opStack.opStack[--opStack.top];
 
         if (promoteNumeric(lhs, rhs) != 0) {
-            fwprintf(errorStream, ERR_LABEL L"不支持的乘法操作数类型\n");
+            fwprintf(errorStream, ERR_LABEL L"不支持的乘法操作数类型喵\n");
             return -1;
         }
 
@@ -440,21 +458,21 @@ inline int interpretInstruction(Instruction& inst, OpStack& opStack, char*& stac
         wprintf(LOG_LABEL L"相除\n");
 #endif
         if (opStack.top < 2) {
-            fwprintf(errorStream, ERR_LABEL L"栈中操作数不够\n");
+            fwprintf(errorStream, ERR_LABEL L"栈中操作数还不够喵~就一点点操作数还想运算，可真是个杂鱼喵~\n");
             return -1;
         }
         _OpStack rhs = opStack.opStack[--opStack.top];
         _OpStack lhs = opStack.opStack[--opStack.top];
 
         if (promoteNumeric(lhs, rhs) != 0) {
-            fwprintf(errorStream, ERR_LABEL L"不支持的除法操作数类型\n");
+            fwprintf(errorStream, ERR_LABEL L"不支持的除法操作数类型喵\n");
             return -1;
         }
 
         _OpStack result = {};
 
         if (lhs.type == TYPE_INT) {
-            if((*(int32_t*)rhs.value) == 0) {
+            if ((*(int32_t*)rhs.value) == 0) {
                 fwprintf(errorStream, ERR_LABEL L"不能除以0喵\n");
                 return -1;
             }
@@ -466,7 +484,7 @@ inline int interpretInstruction(Instruction& inst, OpStack& opStack, char*& stac
             wprintf(LOG_LABEL L"结果：%d\n", res);
 #endif
         } else {
-            if((*(double*)rhs.value) == 0) {
+            if ((*(double*)rhs.value) == 0) {
                 fwprintf(errorStream, ERR_LABEL L"不能除以0喵\n");
                 return -1;
             }
@@ -516,18 +534,18 @@ inline int interpretInstruction(Instruction& inst, OpStack& opStack, char*& stac
 #ifdef HX_DEBUG
             wprintf(LOG_LABEL L"结果：%d\n", (int)res);
 #endif
-        } else if(lhs.type == TYPE_BOOL || rhs.type == TYPE_BOOL) {
-            //非0的任何布尔值视作相等
+        } else if (lhs.type == TYPE_BOOL || rhs.type == TYPE_BOOL) {
+            // 非0的任何布尔值视作相等
             char num1 = 0;
             char num2 = 0;
-            for(int i = 0; i < rhs.size; i++) {
-                if(rhs.value[i] != 0) {
+            for (int i = 0; i < rhs.size; i++) {
+                if (rhs.value[i] != 0) {
                     num1 = 1;
                     break;
                 }
             }
-            for(int i = 0; i < lhs.size; i++) {
-                if(lhs.value[i] != 0) {
+            for (int i = 0; i < lhs.size; i++) {
+                if (lhs.value[i] != 0) {
                     num2 = 1;
                     break;
                 }
@@ -541,10 +559,11 @@ inline int interpretInstruction(Instruction& inst, OpStack& opStack, char*& stac
 #endif
         } else {
             int compareSize = 0;
-            if(lhs.size > rhs.size) {
+            if (lhs.size > rhs.size) {
                 compareSize = lhs.size;
-            } else compareSize = rhs.size;
-            char res = memcmp(lhs.value, rhs.value, compareSize)? 1:0;
+            } else
+                compareSize = rhs.size;
+            char res = memcmp(lhs.value, rhs.value, compareSize) ? 1 : 0;
             result.type = TYPE_BOOL;
             result.size = sizeof(char);
             memcpy(result.value, &res, sizeof(char));
@@ -552,6 +571,162 @@ inline int interpretInstruction(Instruction& inst, OpStack& opStack, char*& stac
             wprintf(LOG_LABEL L"结果：%d\n", (int)res);
 #endif
         }
+        opStack.opStack[opStack.top++] = result;
+        break;
+    }
+    case OP_LT: {
+#ifdef HX_DEBUG
+        wprintf(LOG_LABEL L"次栈顶<栈顶\n");
+#endif
+        if (opStack.top < 2) {
+            fwprintf(errorStream, ERR_LABEL L"栈中操作数还不够喵~就一点点操作数还想运算，可真是个杂鱼喵~\n");
+            return -1;
+        }
+        _OpStack& rhs = opStack.opStack[--opStack.top];
+        _OpStack& lhs = opStack.opStack[--opStack.top];
+
+        if (promoteNumeric(lhs, rhs) != 0) {
+            fwprintf(errorStream, ERR_LABEL L"不支持的操作数类型喵\n");
+            return -1;
+        }
+
+        _OpStack result = {};
+
+        if (lhs.type == TYPE_INT && rhs.type == TYPE_INT) {
+            char res = ((*(int32_t*)lhs.value) < (*(int32_t*)rhs.value));
+            result.type = TYPE_BOOL;
+            result.size = sizeof(char);
+            memcpy(result.value, &res, sizeof(char));
+#ifdef HX_DEBUG
+            wprintf(LOG_LABEL L"结果：%d\n", (bool)res);
+#endif
+        } else if (lhs.type == TYPE_FLOAT && rhs.type == TYPE_FLOAT) {
+            char res = ((*(double*)lhs.value) < (*(double*)rhs.value));
+            result.type = TYPE_BOOL;
+            result.size = sizeof(char);
+            memcpy(result.value, &res, sizeof(char));
+#ifdef HX_DEBUG
+            wprintf(LOG_LABEL L"结果：%d\n", (bool)res);
+#endif
+        } else if (lhs.type == TYPE_BOOL || rhs.type == TYPE_BOOL) {
+            char num1 = 0;
+            char num2 = 0;
+            for (int i = 0; i < rhs.size; i++) {
+                if (rhs.value[i] != 0) {
+                    num1 = 1;
+                    break;
+                }
+            }
+            for (int i = 0; i < lhs.size; i++) {
+                if (lhs.value[i] != 0) {
+                    num2 = 1;
+                    break;
+                }
+            }
+            char res = (num1 > num2);
+            result.type = TYPE_BOOL;
+            result.size = sizeof(char);
+            memcpy(result.value, &res, sizeof(char));
+#ifdef HX_DEBUG
+            wprintf(LOG_LABEL L"结果：%d\n", (int)res);
+#endif
+        } else {
+            int compareSize = 0;
+            if (lhs.size > rhs.size) {
+                compareSize = lhs.size;
+            } else
+                compareSize = rhs.size;
+            char res = (memcmp(lhs.value, rhs.value, compareSize)<0) ? 1 : 0;
+            result.type = TYPE_BOOL;
+            result.size = sizeof(char);
+            memcpy(result.value, &res, sizeof(char));
+#ifdef HX_DEBUG
+            wprintf(LOG_LABEL L"结果：%d\n", (int)res);
+#endif
+        }
+        opStack.opStack[opStack.top++] = result;
+        break;
+    }
+    case OP_AND_LOGIC: {
+#ifdef HX_DEBUG
+        wprintf(LOG_LABEL L"逻辑与\n");
+#endif
+        if (opStack.top < 2) {
+            fwprintf(errorStream, ERR_LABEL L"栈中操作数还不够喵~就一点点操作数还想运算，可真是个杂鱼喵~\n");
+            return -1;
+        }
+        _OpStack& rhs = opStack.opStack[--opStack.top];
+        _OpStack& lhs = opStack.opStack[--opStack.top];
+
+        if (promoteNumeric(lhs, rhs) != 0) {
+            fwprintf(errorStream, ERR_LABEL L"不支持的操作数类型喵\n");
+            return -1;
+        }
+
+        _OpStack result = {};
+        char rhsVal = (char)0;
+        char lhsVal = (char)0;
+
+        for(int i = 0; i < rhs.size; i++) {
+            if(rhs.value[i]) {
+                rhsVal = (char)1;
+                break;
+            }
+        }
+        for(int i = 0; i < lhs.size; i++) {
+            if(lhs.value[i]) {
+                lhsVal = (char)1;
+                break;
+            }
+        }
+        result.size = 1;
+        result.type = TYPE_BOOL;
+        result.value[0] = (rhsVal & lhsVal);
+#ifdef HX_DEBUG
+        wprintf(LOG_LABEL L"结果：%d\n", ((char)result.value[0]));
+#endif
+
+        opStack.opStack[opStack.top++] = result;
+        break;
+    }
+    case OP_OR_LOGIC: {
+#ifdef HX_DEBUG
+        wprintf(LOG_LABEL L"逻辑或\n");
+#endif
+        if (opStack.top < 2) {
+            fwprintf(errorStream, ERR_LABEL L"栈中操作数还不够喵~就一点点操作数还想运算，可真是个杂鱼喵~\n");
+            return -1;
+        }
+        _OpStack& rhs = opStack.opStack[--opStack.top];
+        _OpStack& lhs = opStack.opStack[--opStack.top];
+
+        if (promoteNumeric(lhs, rhs) != 0) {
+            fwprintf(errorStream, ERR_LABEL L"不支持的操作数类型喵\n");
+            return -1;
+        }
+
+        _OpStack result = {};
+        char rhsVal = (char)0;
+        char lhsVal = (char)0;
+
+        for(int i = 0; i < rhs.size; i++) {
+            if(rhs.value[i]) {
+                rhsVal = (char)1;
+                break;
+            }
+        }
+        for(int i = 0; i < lhs.size; i++) {
+            if(lhs.value[i]) {
+                lhsVal = (char)1;
+                break;
+            }
+        }
+        result.size = 1;
+        result.type = TYPE_BOOL;
+        result.value[0] = (rhsVal | lhsVal);
+#ifdef HX_DEBUG
+        wprintf(LOG_LABEL L"结果：%d\n", ((char)result.value[0]));
+#endif
         opStack.opStack[opStack.top++] = result;
         break;
     }
@@ -827,52 +1002,52 @@ inline int interpretInstruction(Instruction& inst, OpStack& opStack, char*& stac
 #ifdef HX_DEBUG
         wprintf(LOG_LABEL L"条件跳转\n");
 #endif
-        if(opStack.top <= 0) {
+        if (opStack.top <= 0) {
             fwprintf(errorStream, ERR_LABEL L"栈中空荡荡的喵，因此不能OP_JMP_CONDITION喵\n");
             return -1;
         }
         bool condition = false;
-        //判断栈顶条件
-        switch(opStack.opStack[opStack.top-1].type) {
+        // 判断栈顶条件
+        switch (opStack.opStack[opStack.top - 1].type) {
         case TYPE_INT: {
             int32_t val = 0;
-            memcpy(&val, opStack.opStack[opStack.top-1].value, opStack.opStack[opStack.top-1].size);
-            if(val) condition = true;
+            memcpy(&val, opStack.opStack[opStack.top - 1].value, opStack.opStack[opStack.top - 1].size);
+            if (val) condition = true;
             break;
         }
         case TYPE_FLOAT: {
             double val = 0;
-            memcpy(&val, opStack.opStack[opStack.top-1].value, opStack.opStack[opStack.top-1].size);
-            if(val) condition = true;
+            memcpy(&val, opStack.opStack[opStack.top - 1].value, opStack.opStack[opStack.top - 1].size);
+            if (val) condition = true;
             break;
         }
         case TYPE_CHAR: {
             uint16_t val = (uint16_t)(L'\0');
-            memcpy(&val, opStack.opStack[opStack.top-1].value, opStack.opStack[opStack.top-1].size);
-            if((wchar_t)val != L'\0') condition = true;
+            memcpy(&val, opStack.opStack[opStack.top - 1].value, opStack.opStack[opStack.top - 1].size);
+            if ((wchar_t)val != L'\0') condition = true;
             break;
         }
         case TYPE_BOOL: {
             char val = (char)0;
-            memcpy(&val, opStack.opStack[opStack.top-1].value, opStack.opStack[opStack.top-1].size);
-            if(val) condition = true;
+            memcpy(&val, opStack.opStack[opStack.top - 1].value, opStack.opStack[opStack.top - 1].size);
+            if (val) condition = true;
             break;
         }
-        case TYPE_STRING: {   //void* size = 4
+        case TYPE_STRING: {  // void* size = 4
             uint32_t val = 0;
-            memcpy(&val, opStack.opStack[opStack.top-1].value, opStack.opStack[opStack.top-1].size);
-            if(val) condition = true;
+            memcpy(&val, opStack.opStack[opStack.top - 1].value, opStack.opStack[opStack.top - 1].size);
+            if (val) condition = true;
             break;
         }
-        case TYPE_ADDRESS: {   //void* size = 4
+        case TYPE_ADDRESS: {  // void* size = 4
             uint32_t val = 0;
-            memcpy(&val, opStack.opStack[opStack.top-1].value, opStack.opStack[opStack.top-1].size);
-            if(val) condition = true;
+            memcpy(&val, opStack.opStack[opStack.top - 1].value, opStack.opStack[opStack.top - 1].size);
+            if (val) condition = true;
             break;
         }
         }
 
-        if(condition) {
+        if (condition) {
             uint32_t trueAddr = 0U;
             memcpy(&trueAddr, inst.params[0].value, sizeof(uint32_t));
             instIndex = (int)trueAddr;

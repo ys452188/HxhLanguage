@@ -172,10 +172,22 @@ static void listObjectCode_Proc(Procedure* proc) {
                      i, *((uint32_t*)ins.params[0].value), *((uint32_t*)ins.params[1].value));
             break;
         case OP_EQU:
-            (logStream, L"\t%03u: \33[1;34m OP_EQU\33[0m\n", i);
+            fwprintf(logStream, L"\t%03u: \33[1;34m OP_EQU\33[0m\n", i);
+            break;
+        case OP_AND:
+            fwprintf(logStream, L"\t%03u: \33[1;34m OP_AND\33[0m\n", i);
+            break;
+        case OP_AND_LOGIC:
+            fwprintf(logStream, L"\t%03u: \33[1;34m OP_AND_LOGIC\33[0m\n", i);
+            break;
+        case OP_OR:
+            fwprintf(logStream, L"\t%03u: \33[1;34m OP_OR\33[0m\n", i);
+            break;
+        case OP_OR_LOGIC:
+            fwprintf(logStream, L"\t%03u: \33[1;34m OP_OR_LOGIC\33[0m\n", i);
             break;
         case OP_NEQU:
-            (logStream, L"\t%03u: \33[1;34m OP_NEQU\33[0m\n", i);
+            fwprintf(logStream, L"\t%03u: \33[1;34m OP_NEQU\33[0m\n", i);
             break;
         default:
             fwprintf(logStream, L"\t%03u: \33[1;32mOP_NOP\33[0m\n", i);
@@ -1320,7 +1332,8 @@ static int generateStatement(int& index, FunCallPitchTable& pitchTable, Constant
         jmpInst.params[0].type = PARAM_TYPE_INDEX;
         proc->instructions.push_back(jmpInst);
         // 条件判断
-    } else if (wcscmp(currentToken.value, L"if") == 0 || wcscmp(currentToken.value, L"若") == 0) {  // ::= if|如果: <exp> -> <block|statement>
+    } else if (wcscmp(currentToken.value, L"if") == 0 ||
+               wcscmp(currentToken.value, L"若") == 0) {  // ::= if|如果: <exp> -> <block|statement>
         if (index + 1 >= function->body_token_count) {
             setError(ERR_IF, currentToken.line, NULL);
             *err = 255;
@@ -1379,24 +1392,24 @@ static int generateStatement(int& index, FunCallPitchTable& pitchTable, Constant
         index++;  // 指向语句或块
 
         // 生成OP_JMP_CONDITION指令,  ########后面要把第二个参数补回来#########
-        //跳转地址应指向JMP后的一个指令
-        uint32_t jmpAddr = (uint32_t)(proc->instructions.size()+1);
+        // 跳转地址应指向JMP后的一个指令
+        uint32_t jmpAddr = (uint32_t)(proc->instructions.size() + 1);
         Instruction jmpInst = {};
         jmpInst.opcode = OP_JMP_CONDITION;
         jmpInst.params[0].type = PARAM_TYPE_INDEX;
         memcpy(jmpInst.params[0].value, &jmpAddr, sizeof(uint32_t));
         proc->instructions.push_back(jmpInst);
-        int jmpInstIndex = proc->instructions.size()-1;
-        //生成块或语句的目标代码
+        int jmpInstIndex = proc->instructions.size() - 1;
+        // 生成块或语句的目标代码
         generateStatement(index, pitchTable, constantPool, all_functions, currentProgram, all_function_count, function,
                           localeSymbolTable, outsideScopes, localeScopeIndex, proc, procIndex, stackSize, localVarSize, err);
-        if(jmpAddr == (uint32_t)(proc->instructions.size())) {  //用户写了空语句，那就塞个NOP
+        if (jmpAddr == (uint32_t)(proc->instructions.size())) {  // 用户写了空语句，那就塞个NOP
             Instruction NOPInst = {};
             proc->instructions.push_back(NOPInst);
         }
         proc->instructions.at(jmpInstIndex).params[1].type = PARAM_TYPE_INDEX;
         uint32_t falseJmpAddr = (uint32_t)proc->instructions.size();
-        Instruction NOPInst = {};   //塞NOP防越界
+        Instruction NOPInst = {};  // 塞NOP防越界
         proc->instructions.push_back(NOPInst);
         memcpy(proc->instructions.at(jmpInstIndex).params[1].value, &falseJmpAddr, sizeof(uint32_t));
     }
@@ -1561,6 +1574,18 @@ void generateInstructionsFromAST(std::vector<Instruction>& instructions, int* in
         case BIN_OPR_LT:
             newInst.opcode = OP_LT;
             break;
+        case BIN_OPR_AND:
+            newInst.opcode = OP_AND;
+            break;
+        case BIN_OPR_AND_LOGIC:
+            newInst.opcode = OP_AND_LOGIC;
+            break;
+        case BIN_OPR_OR:
+            newInst.opcode = OP_OR;
+            break;
+        case BIN_OPR_OR_LOGIC:
+            newInst.opcode = OP_OR_LOGIC;
+            break;
         default:
             *err = -1;
             return;
@@ -1610,7 +1635,7 @@ void generateInstructionsFromAST(std::vector<Instruction>& instructions, int* in
         (*inst_index)++;
         instructions.push_back(newInst);
         (*inst_size)++;
-        if(node->typeCast != OP_NOP) {
+        if (node->typeCast != OP_NOP) {
 #ifdef HX_DEBUG
             log(L"生成强制转换指令");
 #endif

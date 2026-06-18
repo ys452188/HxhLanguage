@@ -12,10 +12,14 @@ enum NodeBinaryOperator {
     BIN_OPR_DIV,
     BIN_OPR_SET,
     BIN_OPR_STRING_CONCAT,
-    BIN_OPR_EQU,     //==
-    BIN_OPR_NEQU,    //!=
-    BIN_OPR_GT,      //>
-    BIN_OPR_LT,      //<
+    BIN_OPR_EQU,   //==
+    BIN_OPR_NEQU,  //!=
+    BIN_OPR_GT,    //>
+    BIN_OPR_LT,    //<
+    BIN_OPR_OR,        // |
+    BIN_OPR_OR_LOGIC,  // ||
+    BIN_OPR_AND,        // &
+    BIN_OPR_AND_LOGIC,  // &&
 };
 
 #include "Error.h"
@@ -36,74 +40,74 @@ static void printAstNode(ASTNode* node, int level) {
     }
 
     switch (node->kind) {
-    case NODE_VALUE:
-        fwprintf(logStream, L"\033[1;32m[Value]\033[0m ");
-        if (node->data.value.type.kind == IR_DT_INT) {
-            fwprintf(logStream, L"INT: %d\n", node->data.value.val.i);
-        } else if (node->data.value.type.kind == IR_DT_FLOAT) {
-            fwprintf(logStream, L"FLOAT: %f\n", node->data.value.val.f);
-        } else if (node->data.value.type.kind == IR_DT_CHAR) {
-            fwprintf(logStream, L"CHAR: '%lc'\n", (wchar_t)node->data.value.val.c);
-        } else if (node->data.value.type.kind == IR_DT_STRING) {
-            fwprintf(logStream, L"STRING: \"%ls\"\n", node->data.value.val.s);
-        } else {
-            fwprintf(logStream, L"UNKNOWN TYPE\n");
-        }
-        break;
+        case NODE_VALUE:
+            fwprintf(logStream, L"\033[1;32m[Value]\033[0m ");
+            if (node->data.value.type.kind == IR_DT_INT) {
+                fwprintf(logStream, L"INT: %d\n", node->data.value.val.i);
+            } else if (node->data.value.type.kind == IR_DT_FLOAT) {
+                fwprintf(logStream, L"FLOAT: %f\n", node->data.value.val.f);
+            } else if (node->data.value.type.kind == IR_DT_CHAR) {
+                fwprintf(logStream, L"CHAR: '%lc'\n", (wchar_t)node->data.value.val.c);
+            } else if (node->data.value.type.kind == IR_DT_STRING) {
+                fwprintf(logStream, L"STRING: \"%ls\"\n", node->data.value.val.s);
+            } else {
+                fwprintf(logStream, L"UNKNOWN TYPE\n");
+            }
+            break;
 
-    case NODE_VAR:
-        fwprintf(logStream, L"\033[1;33m[Var]\033[0m name: %ls, index: %d\n", node->data.var.name, node->data.var.index);
-        break;
+        case NODE_VAR:
+            fwprintf(logStream, L"\033[1;33m[Var]\033[0m name: %ls, index: %d\n", node->data.var.name, node->data.var.index);
+            break;
 
-    case NODE_UNARY:
-        fwprintf(logStream, L"\033[1;35m[Unary]\033[0m op: %d\n", node->data.unary.op);
-        printAstNode(node->left, level + 1);
-        break;
+        case NODE_UNARY:
+            fwprintf(logStream, L"\033[1;35m[Unary]\033[0m op: %d\n", node->data.unary.op);
+            printAstNode(node->left, level + 1);
+            break;
 
-    case NODE_BINARY:
-        fwprintf(logStream, L"\033[1;36m[Binary]\033[0m op: ");
-        switch (node->data.binary.op) {
-        case BIN_OPR_ADD:
-            fwprintf(logStream, L"ADD (+)\n");
+        case NODE_BINARY:
+            fwprintf(logStream, L"\033[1;36m[Binary]\033[0m op: ");
+            switch (node->data.binary.op) {
+                case BIN_OPR_ADD:
+                    fwprintf(logStream, L"ADD (+)\n");
+                    break;
+                case BIN_OPR_SUB:
+                    fwprintf(logStream, L"SUB (-)\n");
+                    break;
+                case BIN_OPR_MUL:
+                    fwprintf(logStream, L"MUL (*)\n");
+                    break;
+                case BIN_OPR_DIV:
+                    fwprintf(logStream, L"DIV (/)\n");
+                    break;
+                case BIN_OPR_SET:
+                    fwprintf(logStream, L"SET (=)\n");
+                    break;
+                case BIN_OPR_EQU:
+                    fwprintf(logStream, L"EQU (==)\n");
+                    break;
+                case BIN_OPR_NEQU:
+                    fwprintf(logStream, L"NEQU (!=)\n");
+                    break;
+                case BIN_OPR_STRING_CONCAT:
+                    fwprintf(logStream, L"STRING_CONCAT\n");
+                    break;
+                default:
+                    fwprintf(logStream, L"UNKNOWN (%d)\n", node->data.binary.op);
+            }
+            printAstNode(node->left, level + 1);
+            printAstNode(node->right, level + 1);
             break;
-        case BIN_OPR_SUB:
-            fwprintf(logStream, L"SUB (-)\n");
+
+        case NODE_FUN_CALL:
+            fwprintf(logStream, L"\033[1;34m[FunCall]\033[0m name: %ls, args: %u\n", node->data.funCall.name,
+                     node->data.funCall.arg_count);
+            for (uint32_t i = 0; i < node->data.funCall.arg_count; i++) {
+                printAstNode(node->data.funCall.args[i], level + 1);
+            }
             break;
-        case BIN_OPR_MUL:
-            fwprintf(logStream, L"MUL (*)\n");
-            break;
-        case BIN_OPR_DIV:
-            fwprintf(logStream, L"DIV (/)\n");
-            break;
-        case BIN_OPR_SET:
-            fwprintf(logStream, L"SET (=)\n");
-            break;
-        case BIN_OPR_EQU:
-            fwprintf(logStream, L"EQU (==)\n");
-            break;
-        case BIN_OPR_NEQU:
-            fwprintf(logStream, L"NEQU (!=)\n");
-            break;    
-        case BIN_OPR_STRING_CONCAT:
-            fwprintf(logStream, L"STRING_CONCAT\n");
-            break;
+
         default:
-            fwprintf(logStream, L"UNKNOWN (%d)\n", node->data.binary.op);
-        }
-        printAstNode(node->left, level + 1);
-        printAstNode(node->right, level + 1);
-        break;
-
-    case NODE_FUN_CALL:
-        fwprintf(logStream, L"\033[1;34m[FunCall]\033[0m name: %ls, args: %u\n", node->data.funCall.name,
-                 node->data.funCall.arg_count);
-        for (uint32_t i = 0; i < node->data.funCall.arg_count; i++) {
-            printAstNode(node->data.funCall.args[i], level + 1);
-        }
-        break;
-
-    default:
-        fwprintf(logStream, L"\033[1;31m[未知]\033[0m\n");
+            fwprintf(logStream, L"\033[1;31m[未知]\033[0m\n");
     }
 }
 extern void printAST(ASTNode* root) {
@@ -136,11 +140,11 @@ static int getVarIndex(const wchar_t* name, SymbolTable* table) {
     }
     return -1;
 }
-static int getPrec(HxTokenType t) noexcept {
+static int getPrec(HxTokenType t) {  //优先级
     if (t == TOK_OPR_MUL || t == TOK_OPR_DIV) return 3;
-    if (t == TOK_OPR_ADD || t == TOK_OPR_SUB) return 2;
-    if(t == TOK_OPR_EQU || t == TOK_OPR_NEQU) return 1;
-    if (t == TOK_OPR_SET) return 0;
+    if (t == TOK_OPR_ADD || t == TOK_OPR_SUB || t == TOK_OPR_REFER || t == TOK_OPR_OR) return 2;
+    if (t == TOK_OPR_EQU || t == TOK_OPR_NEQU) return 1;
+    if (t == TOK_OPR_SET || t == TOK_OPR_OR_LOGIC || t== TOK_OPR_AND_LOGIC) return 0;
     return -1;
 }
 static ASTNode* parsePrimary(Token* tokens, int* index, int size, FunCallPitchTable& pitchTable, SymbolTable* table,
@@ -334,7 +338,7 @@ static ASTNode* parsePrimary(Token* tokens, int* index, int size, FunCallPitchTa
                     }
 
                     funCallNode->data.funCall.args = (ASTNode**)realloc(
-                                                         funCallNode->data.funCall.args, sizeof(ASTNode*) * (funCallNode->data.funCall.arg_count + 1));
+                        funCallNode->data.funCall.args, sizeof(ASTNode*) * (funCallNode->data.funCall.arg_count + 1));
                     funCallNode->data.funCall.args[funCallNode->data.funCall.arg_count] = arg;
                     funCallNode->data.funCall.arg_count++;
                     // parseExpression 会执行 (*index)--
@@ -523,91 +527,91 @@ ASTNode* parseExprRec(Token* tokens, int* index, int size, FunCallPitchTable& pi
             if (combined->left->resultType.kind == IR_DT_STRING || combined->right->resultType.kind == IR_DT_STRING) {
                 ASTNode* node = combined->left;
                 switch (node->resultType.kind) {
-                case IR_DT_INT:
-                    node->typeCast = OP_INT_TO_STRING;
-                    break;
-                case IR_DT_FLOAT:
-                    node->typeCast = OP_INT_TO_STRING;
-                    break;
-                case IR_DT_CHAR:
-                    node->typeCast = OP_CHAR_TO_STRING;
-                    break;
-                case IR_DT_BOOL:
-                    node->typeCast = OP_INT_TO_STRING;
-                    break;
-                case IR_DT_STRING:
-                    break;
+                    case IR_DT_INT:
+                        node->typeCast = OP_INT_TO_STRING;
+                        break;
+                    case IR_DT_FLOAT:
+                        node->typeCast = OP_INT_TO_STRING;
+                        break;
+                    case IR_DT_CHAR:
+                        node->typeCast = OP_CHAR_TO_STRING;
+                        break;
+                    case IR_DT_BOOL:
+                        node->typeCast = OP_INT_TO_STRING;
+                        break;
+                    case IR_DT_STRING:
+                        break;
                 }
                 node = combined->right;
                 switch (node->resultType.kind) {
-                case IR_DT_INT:
-                    node->typeCast = OP_INT_TO_STRING;
-                    break;
-                case IR_DT_FLOAT:
-                    node->typeCast = OP_INT_TO_STRING;
-                    break;
-                case IR_DT_CHAR:
-                    node->typeCast = OP_CHAR_TO_STRING;
-                    break;
-                case IR_DT_BOOL:
-                    node->typeCast = OP_INT_TO_STRING;
-                    break;
-                case IR_DT_STRING:
-                    break;
+                    case IR_DT_INT:
+                        node->typeCast = OP_INT_TO_STRING;
+                        break;
+                    case IR_DT_FLOAT:
+                        node->typeCast = OP_INT_TO_STRING;
+                        break;
+                    case IR_DT_CHAR:
+                        node->typeCast = OP_CHAR_TO_STRING;
+                        break;
+                    case IR_DT_BOOL:
+                        node->typeCast = OP_INT_TO_STRING;
+                        break;
+                    case IR_DT_STRING:
+                        break;
                 }
             } else if (combined->left->resultType.kind == IR_DT_FLOAT || combined->right->resultType.kind == IR_DT_FLOAT) {
                 ASTNode* node = combined->left;
                 switch (node->resultType.kind) {
-                case IR_DT_INT:
-                    node->typeCast = OP_INT_TO_FLOAT;
-                    break;
-                case IR_DT_FLOAT:
-                    break;
-                case IR_DT_CHAR:
-                    node->typeCast = OP_CHAR_TO_FLOAT;
-                    break;
-                case IR_DT_BOOL:
-                    node->typeCast = OP_INT_TO_FLOAT;
-                    break;
+                    case IR_DT_INT:
+                        node->typeCast = OP_INT_TO_FLOAT;
+                        break;
+                    case IR_DT_FLOAT:
+                        break;
+                    case IR_DT_CHAR:
+                        node->typeCast = OP_CHAR_TO_FLOAT;
+                        break;
+                    case IR_DT_BOOL:
+                        node->typeCast = OP_INT_TO_FLOAT;
+                        break;
                 }
                 node = combined->right;
                 switch (node->resultType.kind) {
-                case IR_DT_INT:
-                    node->typeCast = OP_INT_TO_FLOAT;
-                    break;
-                case IR_DT_FLOAT:
-                    break;
-                case IR_DT_CHAR:
-                    node->typeCast = OP_CHAR_TO_FLOAT;
-                    break;
-                case IR_DT_BOOL:
-                    node->typeCast = OP_INT_TO_FLOAT;
-                    break;
+                    case IR_DT_INT:
+                        node->typeCast = OP_INT_TO_FLOAT;
+                        break;
+                    case IR_DT_FLOAT:
+                        break;
+                    case IR_DT_CHAR:
+                        node->typeCast = OP_CHAR_TO_FLOAT;
+                        break;
+                    case IR_DT_BOOL:
+                        node->typeCast = OP_INT_TO_FLOAT;
+                        break;
                 }
             } else if (combined->left->resultType.kind == IR_DT_INT || combined->right->resultType.kind == IR_DT_INT) {
                 ASTNode* node = combined->left;
                 switch (node->resultType.kind) {
-                case IR_DT_INT:
-                    break;
-                case IR_DT_FLOAT:
-                    break;
-                case IR_DT_CHAR:
-                    node->typeCast = OP_CHAR_TO_INT;
-                    break;
-                case IR_DT_BOOL:
-                    break;
+                    case IR_DT_INT:
+                        break;
+                    case IR_DT_FLOAT:
+                        break;
+                    case IR_DT_CHAR:
+                        node->typeCast = OP_CHAR_TO_INT;
+                        break;
+                    case IR_DT_BOOL:
+                        break;
                 }
                 node = combined->right;
                 switch (node->resultType.kind) {
-                case IR_DT_INT:
-                    break;
-                case IR_DT_FLOAT:
-                    break;
-                case IR_DT_CHAR:
-                    node->typeCast = OP_CHAR_TO_INT;
-                    break;
-                case IR_DT_BOOL:
-                    break;
+                    case IR_DT_INT:
+                        break;
+                    case IR_DT_FLOAT:
+                        break;
+                    case IR_DT_CHAR:
+                        node->typeCast = OP_CHAR_TO_INT;
+                        break;
+                    case IR_DT_BOOL:
+                        break;
                 }
             }
         }
@@ -640,14 +644,22 @@ ASTNode* parseExprRec(Token* tokens, int* index, int size, FunCallPitchTable& pi
             }
         } else if (opTok->type == TOK_OPR_SET) {
             combined->data.binary.op = BIN_OPR_SET;
-        } else if(opTok->type == TOK_OPR_EQU) {
+        } else if (opTok->type == TOK_OPR_EQU) {
             combined->data.binary.op = BIN_OPR_EQU;
-        } else if(opTok->type == TOK_OPR_NEQU) {
+        } else if (opTok->type == TOK_OPR_NEQU) {
             combined->data.binary.op = BIN_OPR_NEQU;
-        } else if(opTok->type == TOK_OPR_GT) {
+        } else if (opTok->type == TOK_OPR_GT) {
             combined->data.binary.op = BIN_OPR_GT;
-        } else if(opTok->type == TOK_OPR_LT) {
+        } else if (opTok->type == TOK_OPR_LT) {
             combined->data.binary.op = BIN_OPR_LT;
+        } else if (opTok->type == TOK_OPR_REFER) {
+            combined->data.binary.op = BIN_OPR_AND;
+        } else if (opTok->type == TOK_OPR_AND_LOGIC) {
+            combined->data.binary.op = BIN_OPR_AND_LOGIC;
+        } else if (opTok->type == TOK_OPR_OR) {
+            combined->data.binary.op = BIN_OPR_OR;
+        } else if (opTok->type == TOK_OPR_OR_LOGIC) {
+            combined->data.binary.op = BIN_OPR_OR_LOGIC;
         }
         lhs = combined;
     }

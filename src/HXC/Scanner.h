@@ -5,22 +5,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-/*
-  readSourceFile_no_windows:
-   path: 文件路径，使用 C 字符串打开
-  - src: 输出的 wchar_t* ，由函数分配，调用者负责 free。
-  返回 0 成功，非 0 失败。
-*/
 
 int readSourceFile(FILE* fp, wchar_t** src) noexcept;
 /*
-  将 UTF-8 字节序列解码为 UTF-16（wchar_t），适配 Windows (wchar_t == 2) 和 Unix
-  (wchar_t == 4)：
-  - 输入: ptr 指向 UTF-8 数据，len 为字节长度
-  - 输出: *out 为 null 结尾的 wchar_t* （由函数 malloc 出来，调用者负责
+  将 UTF-8 字节序列解码为wchar_t
+  - ptr:指向UTF-8数据，len为字节长度
+  - 输出: *out为null结尾的wchar_t*（由函数 malloc 出来，调用者负责
   free），返回 0 成功，非 0 失败
 */
-static int utf8_to_wcs(const char* ptr, size_t len, wchar_t** out) noexcept {
+static int UTF8ToWStr(const char* ptr, size_t len, wchar_t** out) noexcept {
     if (!ptr || !out) return -1;
     *out = NULL;
     size_t i = 0;
@@ -170,7 +163,7 @@ int readSourceFile(FILE* fp, wchar_t** src) noexcept {
     if (size >= 3 && (unsigned char)buf[0] == 0xEF && (unsigned char)buf[1] == 0xBB && (unsigned char)buf[2] == 0xBF) {
         // UTF-8 BOM
         offset = 3;
-        int rc = utf8_to_wcs(buf + offset, size - offset, src);
+        int rc = UTF8ToWStr(buf + offset, size - offset, src);
         free(buf);
         return rc;
     } else if (size >= 2 && (unsigned char)buf[0] == 0xFF && (unsigned char)buf[1] == 0xFE) {
@@ -219,7 +212,7 @@ int readSourceFile(FILE* fp, wchar_t** src) noexcept {
         return 0;
     } else {
         // 无BOM
-        int rc = utf8_to_wcs(buf, size, src);
+        int rc = UTF8ToWStr(buf, size, src);
         free(buf);
         return rc;
     }

@@ -25,7 +25,7 @@
 
 ```bnf
 <fun_decl>     ::= "fun" ":" <identifier> "(" <arg_list> ")" [ ":" <type> ] "->" <block> 
-                 | "定义函数" ":" <identifier> "(" <arg_list> ")" [ "," "返回类型是" ":" <type> ] "->" <block>
+                 | "函数" ":" <identifier> "(" <arg_list> ")" [ "," "返回类型是" ":" <type> ] "->" <block>
 <arg_list>     ::= <identifier> ":" <type> | <arg_list> "," <identifier> ":" <type> | ε
 <block>        ::= "{" <statement_list> "}"
 
@@ -34,7 +34,7 @@
 #### 4. 类与对象
 
 ```bnf
-<class_decl>   ::= "class" ":" [ <identifier> "->" ] <identifier> <block>
+<class_decl>   ::= "cls" ":" [ <identifier> "->" ] <identifier> <block>
                  | "定义类" ":" <identifier> [ "," "父类是" ":" <identifier> ] "->" <block>
 <access_mod>   ::= "public:" | "公有成员:" | "private:" | "私有成员:" | "protected:" | "受保护成员:"
 <class_member> ::= <access_mod> <statement_list>

@@ -1,7 +1,6 @@
 #########CMake语法好难看啊啊啊啊啊##########
 
-cmake_minimum_required(VERSION 3.5)
-project(HxHLanguage VERSION 0.114 LANGUAGES CXX)
+cmake_minimum_required(VERSION 3.5...3.25)
 
 ########配置文件
 set(CONFIG_FILE "${CMAKE_CURRENT_SOURCE_DIR}/config.txt")
@@ -11,16 +10,20 @@ if(EXISTS ${CONFIG_FILE})
     # 按行读取文件
     file(STRINGS ${CONFIG_FILE} CONFIG_LINES)
     foreach(LINE IN LISTS CONFIG_LINES)
-        # 忽略注释行和空行
+        string(STRIP "${LINE}" LINE)
         if(NOT LINE MATCHES "^#" AND NOT LINE STREQUAL "")
-            # 解析 KEY=VALUE 的结构
-            string(REGEX MATCH "([^=]+)=(.*)" EACH_CONF ${LINE})
-            set(KEY ${CMAKE_MATCH_1})
-            set(VAL ${CMAKE_MATCH_2})
+            #严格匹配 KEY=VALUE 结构
+            if(LINE MATCHES "^([^=]+)=(.*)$")
+                set(KEY ${CMAKE_MATCH_1})
+                set(VAL ${CMAKE_MATCH_2})
+                string(STRIP "${KEY}" KEY)
+                string(STRIP "${VAL}" VAL)
             
-            # 把解析出来的配置注册到 CMake 变量里
-            set(${KEY} ${VAL})
-            message(STATUS "  配置项: ${KEY} -> ${VAL}")
+                set(${KEY} ${VAL})
+                message(STATUS "  配置项: ${KEY} -> ${VAL}")
+            else()
+                message(WARNING "发现无法解析的配置行: ${LINE}")
+            endif()
         endif()
     endforeach()
 else()
@@ -38,7 +41,14 @@ if(LANG STREQUAL "zh_TW")
     set(LANG_zh_TW_MACRO 1)
 else()
     unset(LANG_zh_TW_MACRO) 
-endif()    
+endif() 
+
+if(NOT WIN32)
+    if(OBJECT_OS STREQUAL "WINDOWS")
+        set(CMAKE_C_COMPILER "x86_64-w64-mingw32-gcc")
+        set(CMAKE_CXX_COMPILER "x86_64-w64-mingw32-g++")
+    endif()
+endif()
 
 configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/config.h.in"
@@ -48,6 +58,8 @@ configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/config.h.in"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/HXVM/config.h"
 )
+
+project(HxHLanguage VERSION 0.114 LANGUAGES CXX)
 #################
 
 if(MSVC)
@@ -73,4 +85,13 @@ if(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
     target_compile_options(hxvm PRIVATE "-ftls-model=global-dynamic")
     #链接器不过于激进地压缩段
     target_link_options(hxvm PRIVATE "-Wl,-z,common-page-size=65536" "-Wl,-z,max-page-size=65536")
+endif()
+
+if(OBJECT_OS STREQUAL "ANDROID_TERMUX")
+    add_custom_command(
+        TARGET hxvm
+        POST_BUILD
+        COMMAND sh "${CMAKE_CURRENT_SOURCE_DIR}/TermuxPackage.sh"
+        COMMENT "打包中"
+    )
 endif()

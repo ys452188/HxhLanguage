@@ -2,5 +2,10 @@
 
 #是否打印调试信息
 HX_DEBUG=OFF
+
 #setError语言
-LANG=zh_TW
+LANG=zh_CN
+
+#生成可执行文件针对的平台
+#ANDROID_TERMUX, LINUX, WINDOWS
+OBJECT_OS=ANDROID_TERMUX

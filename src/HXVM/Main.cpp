@@ -110,5 +110,9 @@ void initLocale(void) {
     setlocale(LC_ALL, "C.UTF-8");
     // 设置宽字符流的定向
     fwide(stdout, 1);  // 1 = 宽字符定向
+#ifdef _WIN32
+    _setmode(_fileno(stdout), _O_U16TEXT);
+    _setmode(_fileno(stderr), _O_U16TEXT);
+#endif
     return;
 }

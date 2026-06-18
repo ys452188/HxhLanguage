@@ -1,0 +1,49 @@
+.\" HxHLanguage Manual Page
+.Dd June 7, 2026
+.Dt HXHLANG 1
+.Os Unix
+.Sh NAME
+.Nm hxc
+.Nd HxHLanguage 编译系统与虚拟机驱动器
+.Sh SYNOPSIS
+.Nm
+.Op Fl c | Fl r
+.Ar file
+.Sh DESCRIPTION
+hxc 是 HxHLanguage 的编译器。
+HxHLanguage 是一个编程语言
+.Pp
+编译
+.Sh OPTIONS
+.Bd -literal -offset indent
+hxc <fileName> [-o ObjectFile]
+解析输入的文件并将其转换为字节码目标文件，不提供ObjectFile将输出out.hxo。
+.El
+.Sh GRAMMAR QUICK REFERENCE
+HxHLanguage 支持以下核心语法结构：
+.Bl -bullet -offset indent
+.It
+变量定义:
+.Bd -literal -offset indent
+var : myVariable : int ;
+定义变量 : myVariable , 类型是 : 整型 ;
+.Ed
+.It
+条件判断:
+.Bd -literal -offset indent
+if : expression -> { ... }
+若 : expression -> { ... }
+.Ed
+.It
+循环语句:
+.Bd -literal -offset indent
+repeat -> { ... } until：expression
+循环 -> { ... } 直到 : expression
+.Ed
+.El
+.Sh DIAGNOSTICS
+当编译失败时，
+.Nm
+会向标准错误流输出带有行号的标志性提示。
+
+.An "ys452188(硫酸铜非常好吃)" .

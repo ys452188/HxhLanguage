@@ -1,9 +1,9 @@
-定义函数：主函数（无参数）->{
+函数：主函数（无参数）->{
     定义变量：新变量，类型是:整型。
     新变量 = 114。
     
     var:newVar1:int。
-    若:新变量==114-> {
+    若:新变量==114 || 0-> {
         newVar1 = 114;
     }
     
@@ -35,11 +35,11 @@ fun:g()-> {
     var:b:int;
     var:c:C;
 }
-class: C {
+cls: C {
     public:
     var:c:float;
     var:d:D;
 }
-class: A->D {
+cls: A->D {
     var:a:str;
 }

@@ -18,17 +18,21 @@ enum {
     OP_POP,        // 弹出
     OP_STORE_VAR,  // 将栈顶值存入变量  OP_STORE_VAR <offest(u32)>
     // <copySize(u32)>
-    
+
     OP_ADD,
     OP_SUB,
     OP_MUL,
-    OP_DIV,            //次栈顶除栈顶
-    OP_EQU,            //必须知道两参数的类型
-    OP_NEQU,           //必须知道两参数的类型
-    OP_GT,             // 次栈顶 > 栈顶  -> true
-    OP_LT,             // 次栈顶 < 栈顶  -> true
-    
-    OP_JMP,            // OP_JMP <instAddr(u32)>
+    OP_DIV,   // 次栈顶除栈顶
+    OP_EQU,   // 必须知道两参数的类型
+    OP_NEQU,  // 必须知道两参数的类型
+    OP_GT,    // 次栈顶 > 栈顶  -> true
+    OP_LT,    // 次栈顶 < 栈顶  -> true
+    OP_AND,
+    OP_OR,
+    OP_AND_LOGIC,
+    OP_OR_LOGIC,
+
+    OP_JMP,  // OP_JMP <instAddr(u32)>
     // JMP_CONDITION <栈顶为真时跳转的地址(index u32)> <为假时跳转的地址(index u32)>
     OP_JMP_CONDITION,
     OP_CAL,  // CAL <procIndex>(u32) <paramCount>(u32)
@@ -240,7 +244,19 @@ static int writeInstruction(Instruction& inst, FILE* file) {
         break;
     case OP_EQU:
         fwprintf(logStream, L"\33[1;34m OP_EQU\33[0m\n");
-        break;    
+        break;
+    case OP_OR:
+        fwprintf(logStream, L"\33[1;34m OP_OR\33[0m\n");
+        break;
+    case OP_OR_LOGIC:
+        fwprintf(logStream, L"\33[1;34m OP_OR_LOGIC\33[0m\n");
+        break;
+    case OP_AND:
+        fwprintf(logStream, L"\33[1;34m OP_AMD\33[0m\n");
+        break;
+    case OP_AND_LOGIC:
+        fwprintf(logStream, L"\33[1;34m OP_AMD_LOGIC\33[0m\n");
+        break;
     default:
         fwprintf(logStream, L"\33[1;32mOP_NOP\33[0m)\n");
     }

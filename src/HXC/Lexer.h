@@ -24,8 +24,9 @@ typedef enum HxTokenType {
     TOK_OPR_LT,        // <
     TOK_OPR_GTE,       // >=
     TOK_OPR_LTE,       // <=
-    TOK_OPR_AND,       // &&
-    TOK_OPR_OR,        // ||
+    TOK_OPR_AND_LOGIC,       // &&,  &实际被识别为TOK_OPR_REFER
+    TOK_OPR_OR_LOGIC,        // ||
+    TOK_OPR_OR,
     TOK_OPR_NOT,       // !
     TOK_OPR_INC,       // ++
     TOK_OPR_DEC,       // --
@@ -56,10 +57,10 @@ typedef struct Tokens {  // Token流
     Token* tokens;
 } Tokens;
 wchar_t* keyword[] = {  // 关键字
-    L"ret",        L"var",  L"con",    L"fun",    L"class",   L"if",   L"int",  L"float",
-    L"str",        L"char",   L"整型",     L"浮点型",   L"字符串型",   L"字符型",     L"定义变量", L"定义常量",
-    L"定义函数", L"定义类", L"公有成员", L"私有成员", L"受保护成员", L"public",     L"private",    L"proctected",
-    L"类型是",     L"父类是", L"repeat",   L"循环", L"若",  L"返回",  L"返回类型是", L"无返回类型", NULL
+    L"ret",      L"var",      L"con",        L"fun",        L"cls",      L"if",         L"int",      L"float",    L"str",
+    L"char",     L"整型",     L"浮点型",     L"字符串型",   L"字符型",     L"定义变量",   L"定义常量", L"函数", L"定义类",
+    L"公有成员", L"私有成员", L"受保护成员", L"public",     L"private",    L"proctected", L"类型是",   L"父类是",   L"repeat",
+    L"循环",     L"若",       L"返回",       L"返回类型是", L"无返回类型", NULL
 };
 static inline wchar_t* escape(const wchar_t* src) noexcept;
 static inline bool isKeyword(wchar_t* str) noexcept;  // 判断是否是关键字
@@ -249,7 +250,9 @@ Tokens* lex(wchar_t* src, int* err) noexcept {
                         (src[index_src] == L'=' && src[index_src + 1] == L'=') ||  //==
                         (src[index_src] == L'+' && src[index_src + 1] == L'+') ||  //++
                         (src[index_src] == L'-' && src[index_src + 1] == L'-') ||  //--
-                        (src[index_src] == L'-' && src[index_src + 1] == L'>')) {
+                        (src[index_src] == L'-' && src[index_src + 1] == L'>') ||  //->
+                         (src[index_src] == L'&' && src[index_src + 1] == L'&')  ||  //&&
+                          (src[index_src] == L'|' && src[index_src + 1] == L'|')) {
                     if ((src[index_src] == L'>' && src[index_src + 1] == L'=')) {
                         tokens->tokens[token_index].type = TOK_OPR_GTE;
                     } else if ((src[index_src] == L'<' && src[index_src + 1] == L'=')) {
@@ -262,12 +265,10 @@ Tokens* lex(wchar_t* src, int* err) noexcept {
                         tokens->tokens[token_index].type = TOK_OPR_DEC;
                     } else if ((src[index_src] == L'-' && src[index_src + 1] == L'>')) {
                         tokens->tokens[token_index].type = TOK_OPR_POINT;
-                    } else if ((src[index_src] == L'＆' && src[index_src + 1] == L'＆')) {
-                        tokens->tokens[token_index].type = TOK_OPR_AND;
                     } else if ((src[index_src] == L'|' && src[index_src + 1] == L'|')) {
-                        tokens->tokens[token_index].type = TOK_OPR_OR;
+                        tokens->tokens[token_index].type = TOK_OPR_OR_LOGIC;
                     } else if ((src[index_src] == L'&' && src[index_src + 1] == L'&')) {
-                        tokens->tokens[token_index].type = TOK_OPR_AND;
+                        tokens->tokens[token_index].type = TOK_OPR_AND_LOGIC;
                     }
                     tokens->tokens[token_index].value = (wchar_t*)calloc(3, sizeof(wchar_t));
                     if (!(tokens->tokens[token_index].value)) MEM_FAIL;
@@ -472,11 +473,11 @@ static bool isKeyword(wchar_t* str) noexcept {
     return false;
 }
 static bool isOperator(wchar_t ch) noexcept {
-    return (ch == L'+' || ch == L'-' || ch == L'*' || ch == L'×' || ch == L',' || ch == L'，' || ch == L'/' || ch == L'÷' || ch == L'=' || ch == L'\"' ||
-            ch == L'.' || ch == L'\'' || ch == L'“' || ch == L'‘' || ch == L'’' || ch == L'”' || ch == L'|' || ch == L'&' ||
-            ch == L'^' || ch == L'%' || ch == L'!' || ch == L'！' || ch == L'{' || ch == L'}' || ch == L'(' || ch == L')' ||
-            ch == L'（' || ch == L'）' || ch == L';' || ch == L'；' || ch == L'。' || ch == L'[' || ch == L'【' || ch == L']' ||
-            ch == L'】' || ch == L':' || ch == L'：');
+    return (ch == L'+' || ch == L'-' || ch == L'*' || ch == L'×' || ch == L',' || ch == L'，' || ch == L'/' || ch == L'÷' ||
+            ch == L'=' || ch == L'\"' || ch == L'.' || ch == L'\'' || ch == L'“' || ch == L'‘' || ch == L'’' || ch == L'”' ||
+            ch == L'|' || ch == L'&' || ch == L'^' || ch == L'%' || ch == L'!' || ch == L'！' || ch == L'{' || ch == L'}' ||
+            ch == L'(' || ch == L')' || ch == L'（' || ch == L'）' || ch == L';' || ch == L'；' || ch == L'。' || ch == L'[' ||
+            ch == L'【' || ch == L']' || ch == L'】' || ch == L':' || ch == L'：');
 }
 void freeTokens(Tokens** tokens) noexcept {
 #ifdef HX_DEBUG
@@ -569,12 +570,20 @@ void showTokens(Tokens* tokens) {
                 fwprintf(logStream, L"[LTE]");
                 break;
             }
-            case TOK_OPR_AND: {
-                fwprintf(logStream, L"[AND]");
+            case TOK_OPR_AND_LOGIC: {
+                fwprintf(logStream, L"[AND(逻辑与)]");
+                break;
+            }
+            case TOK_OPR_REFER: {
+                fwprintf(logStream, L"[REF(或与)]");
                 break;
             }
             case TOK_OPR_OR: {
                 fwprintf(logStream, L"[OR]");
+                break;
+            }
+            case TOK_OPR_OR_LOGIC: {
+                fwprintf(logStream, L"[OR(逻辑或)]");
                 break;
             }
             case TOK_OPR_NOT: {

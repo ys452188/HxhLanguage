@@ -308,54 +308,54 @@ int deduceFunctionReturnTypes(IR_Program* program) {
         }
 #ifdef HX_DEBUG
         switch (fun->returnType.kind) {
-        case IR_DT_VOID:
-            log(L"类型推导：%ls -> %ls", fun->name, L"void");
-            break;
-        case IR_DT_INT:
-            log(L"类型推导：%ls -> %ls", fun->name, L"int");
-            break;
-        case IR_DT_INT_ARR:
-            log(L"类型推导：%ls -> %ls", fun->name, L"int[]");
-            break;
-        case IR_DT_INT_REFER:
-            log(L"类型推导：%ls -> %ls", fun->name, L"int&");
-            break;
-        case IR_DT_CHAR:
-            log(L"类型推导：%ls -> %ls", fun->name, L"char");
-            break;
-        case IR_DT_CHAR_ARR:
-            log(L"类型推导：%ls -> %ls", fun->name, L"char[]");
-            break;
-        case IR_DT_CHAR_REFER:
-            log(L"类型推导：%ls -> %ls", fun->name, L"char&");
-            break;
-        case IR_DT_FLOAT:
-            log(L"类型推导：%ls -> %ls", fun->name, L"float");
-            break;
-        case IR_DT_FLOAT_ARR:
-            log(L"类型推导：%ls -> %ls", fun->name, L"float[]");
-            break;
-        case IR_DT_FLOAT_REFER:
-            log(L"类型推导：%ls -> %ls", fun->name, L"float&");
-            break;
-        case IR_DT_STRING:
-            log(L"类型推导：%ls -> %ls", fun->name, L"str");
-            break;
-        case IR_DT_STRING_ARR:
-            log(L"类型推导：%ls -> %ls", fun->name, L"str[]");
-            break;
-        case IR_DT_STRING_REFER:
-            log(L"类型推导：%ls -> %ls", fun->name, L"str&");
-            break;
-        case IR_DT_CUSTOM:
-            log(L"类型推导：%ls -> %ls", fun->name, fun->returnType.customTypeName);
-            break;
-        case IR_DT_CUSTOM_ARR:
-            log(L"类型推导：%ls -> %ls[]", fun->name, fun->returnType.customTypeName);
-            break;
-        case IR_DT_CUSTOM_REFER:
-            log(L"类型推导：%ls -> %ls&", fun->name, fun->returnType.customTypeName);
-            break;
+            case IR_DT_VOID:
+                log(L"类型推导：%ls -> %ls", fun->name, L"void");
+                break;
+            case IR_DT_INT:
+                log(L"类型推导：%ls -> %ls", fun->name, L"int");
+                break;
+            case IR_DT_INT_ARR:
+                log(L"类型推导：%ls -> %ls", fun->name, L"int[]");
+                break;
+            case IR_DT_INT_REFER:
+                log(L"类型推导：%ls -> %ls", fun->name, L"int&");
+                break;
+            case IR_DT_CHAR:
+                log(L"类型推导：%ls -> %ls", fun->name, L"char");
+                break;
+            case IR_DT_CHAR_ARR:
+                log(L"类型推导：%ls -> %ls", fun->name, L"char[]");
+                break;
+            case IR_DT_CHAR_REFER:
+                log(L"类型推导：%ls -> %ls", fun->name, L"char&");
+                break;
+            case IR_DT_FLOAT:
+                log(L"类型推导：%ls -> %ls", fun->name, L"float");
+                break;
+            case IR_DT_FLOAT_ARR:
+                log(L"类型推导：%ls -> %ls", fun->name, L"float[]");
+                break;
+            case IR_DT_FLOAT_REFER:
+                log(L"类型推导：%ls -> %ls", fun->name, L"float&");
+                break;
+            case IR_DT_STRING:
+                log(L"类型推导：%ls -> %ls", fun->name, L"str");
+                break;
+            case IR_DT_STRING_ARR:
+                log(L"类型推导：%ls -> %ls", fun->name, L"str[]");
+                break;
+            case IR_DT_STRING_REFER:
+                log(L"类型推导：%ls -> %ls", fun->name, L"str&");
+                break;
+            case IR_DT_CUSTOM:
+                log(L"类型推导：%ls -> %ls", fun->name, fun->returnType.customTypeName);
+                break;
+            case IR_DT_CUSTOM_ARR:
+                log(L"类型推导：%ls -> %ls[]", fun->name, fun->returnType.customTypeName);
+                break;
+            case IR_DT_CUSTOM_REFER:
+                log(L"类型推导：%ls -> %ls&", fun->name, fun->returnType.customTypeName);
+                break;
         }
 #endif
     }
