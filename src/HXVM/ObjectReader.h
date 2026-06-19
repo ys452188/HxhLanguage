@@ -29,8 +29,12 @@ enum {
     OP_LT,    // 次栈顶 < 栈顶  -> true
     OP_AND,
     OP_OR,
+    OP_NOT,
     OP_AND_LOGIC,
     OP_OR_LOGIC,
+    OP_NOT_LOGIC,
+    OP_INC,  // INC <offest> <varSize>
+    OP_DEC,
 
     OP_JMP,  // OP_JMP <instAddr(u32)>
     // JMP_CONDITION <栈顶为真时跳转的地址(index u32)> <为假时跳转的地址(index u32)>

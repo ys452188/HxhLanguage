@@ -35,6 +35,7 @@ typedef enum ErrorType {
     ERR_REPEAT,
     ERR_IF,
     ERROR_UNCOMPLETED_CLASS,  // 类相互包含
+    ERROR_INC_OR_DEC_OP_VAR,  // 非法自增/减操作数
 } ErrorType;
 void initLocale(void) noexcept {
     // 设置Locale
@@ -570,6 +571,13 @@ void setError(ErrorType e, int errorLine, const wchar_t* errCode) noexcept {
                      L"如果不报错，占的内存就太......太大了。电脑会坏..."
                      L"...坏掉了...."
                      L".\33[0m(位于第%d行)\n",
+                     errorLine);
+            break;
+        }
+        case ERROR_INC_OR_DEC_OP_VAR: {
+            swprintf(errorMessageBuffer, ERROR_BUF_SIZE,
+                     L"\33[31m[ERR]该类型的变量是不支持自增或自减的喵～笨蛋！\33["
+                     L"0m(位于第%d行)\n",
                      errorLine);
             break;
         }

@@ -208,7 +208,8 @@ typedef struct ASTNode {
         } var;
         struct {
             int op;
-        } unary;  // NEG, POS
+            wchar_t* varName;  // inc,dic需要
+        } unary;
         struct {
             int op;
             wchar_t* varName;  // mov需要

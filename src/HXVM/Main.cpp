@@ -44,8 +44,7 @@ void* interpret_packed(void* dataPtr) {
 int main(int argc, char** argv) {
     // 注册 Ctrl+C 信号
     std::signal(SIGINT, signalHandler);
-    clock_t start, end;
-    start = clock();
+    auto start = std::chrono::high_resolution_clock::now();
     initLocale();
     std::string path = "";
     for (int i = 1; i < argc; i++) {
@@ -81,19 +80,23 @@ int main(int argc, char** argv) {
     data.obj = &objCode;
     data.ret = &ret;
     if (pthread_create(&mainThread, NULL, interpret_packed, &data)) {
-        fwprintf(errorStream, ERR_LABEL L"寄！线程创建失败！共存活%lfs\n", (double)(end - start) / CLOCKS_PER_SEC);
+        auto end = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+        fwprintf(errorStream, ERR_LABEL L"寄！线程创建失败！共存活%lfs\n", (double)((duration) / 1000000.0));
     }
     pthread_join(mainThread, NULL);
     if (err || ret) {
-        end = clock();
-        fwprintf(errorStream, ERR_LABEL L"寄！运行时发生异常！共存活%lfs\n", (double)(end - start) / CLOCKS_PER_SEC);
+        auto end = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+        fwprintf(errorStream, ERR_LABEL L"寄！运行时发生异常！共存活%lfs\n", (double)((duration) / 1000000.0));
         return -1;
     }
 
     freeObjectCode(objCode);
 
-    end = clock();
-    wprintf(INFO_LABEL L"结束 耗时%lfs\n", (double)(end - start) / CLOCKS_PER_SEC);
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    wprintf(INFO_LABEL L"结束 耗时%lfs\n", (double)((duration) / 1000000.0));
     return 0;
 }
 void signalHandler(int signalNumber) {

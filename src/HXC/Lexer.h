@@ -17,15 +17,15 @@ typedef enum HxTokenType {
     TOK_OPR_DIV,
     TOK_OPR_ADD,
     TOK_OPR_SUB,
-    TOK_OPR_SET,       // =
-    TOK_OPR_EQU,       // ==
-    TOK_OPR_NEQU,      // !=
-    TOK_OPR_GT,        // >
-    TOK_OPR_LT,        // <
-    TOK_OPR_GTE,       // >=
-    TOK_OPR_LTE,       // <=
-    TOK_OPR_AND_LOGIC,       // &&,  &实际被识别为TOK_OPR_REFER
-    TOK_OPR_OR_LOGIC,        // ||
+    TOK_OPR_SET,        // =
+    TOK_OPR_EQU,        // ==
+    TOK_OPR_NEQU,       // !=
+    TOK_OPR_GT,         // >
+    TOK_OPR_LT,         // <
+    TOK_OPR_GTE,        // >=
+    TOK_OPR_LTE,        // <=
+    TOK_OPR_AND_LOGIC,  // &&,  &实际被识别为TOK_OPR_REFER
+    TOK_OPR_OR_LOGIC,   // ||
     TOK_OPR_OR,
     TOK_OPR_NOT,       // !
     TOK_OPR_INC,       // ++
@@ -57,11 +57,10 @@ typedef struct Tokens {  // Token流
     Token* tokens;
 } Tokens;
 wchar_t* keyword[] = {  // 关键字
-    L"ret",      L"var",      L"con",        L"fun",        L"cls",      L"if",         L"int",      L"float",    L"str",
-    L"char",     L"整型",     L"浮点型",     L"字符串型",   L"字符型",     L"定义变量",   L"定义常量", L"函数", L"定义类",
-    L"公有成员", L"私有成员", L"受保护成员", L"public",     L"private",    L"proctected", L"类型是",   L"父类是",   L"repeat",
-    L"循环",     L"若",       L"返回",       L"返回类型是", L"无返回类型", NULL
-};
+    L"ret",      L"var",      L"con",        L"fun",      L"cls",     L"if",         L"int",        L"float",  L"str",
+    L"char",     L"整型",     L"浮点型",     L"字符串型", L"字符型",  L"定义变量",   L"定义常量",   L"函数",   L"定义类",
+    L"公有成员", L"私有成员", L"受保护成员", L"public",   L"private", L"proctected", L"类型是",     L"父类是", L"repeat",
+    L"until",    L"循环",     L"直到",       L"若",       L"返回",    L"返回类型是", L"无返回类型", NULL};
 static inline wchar_t* escape(const wchar_t* src) noexcept;
 static inline bool isKeyword(wchar_t* str) noexcept;  // 判断是否是关键字
 static inline bool isOperator(wchar_t ch) noexcept;   // 判断是否是操作符
@@ -246,13 +245,13 @@ Tokens* lex(wchar_t* src, int* err) noexcept {
             // 偷看是否为两个字符组成的操作符
             if (index_src + 1 < length_src) {
                 if ((src[index_src] == L'>' && src[index_src + 1] == L'=') ||
-                        (src[index_src] == L'<' && src[index_src + 1] == L'=') ||  //<=
-                        (src[index_src] == L'=' && src[index_src + 1] == L'=') ||  //==
-                        (src[index_src] == L'+' && src[index_src + 1] == L'+') ||  //++
-                        (src[index_src] == L'-' && src[index_src + 1] == L'-') ||  //--
-                        (src[index_src] == L'-' && src[index_src + 1] == L'>') ||  //->
-                         (src[index_src] == L'&' && src[index_src + 1] == L'&')  ||  //&&
-                          (src[index_src] == L'|' && src[index_src + 1] == L'|')) {
+                    (src[index_src] == L'<' && src[index_src + 1] == L'=') ||  //<=
+                    (src[index_src] == L'=' && src[index_src + 1] == L'=') ||  //==
+                    (src[index_src] == L'+' && src[index_src + 1] == L'+') ||  //++
+                    (src[index_src] == L'-' && src[index_src + 1] == L'-') ||  //--
+                    (src[index_src] == L'-' && src[index_src + 1] == L'>') ||  //->
+                    (src[index_src] == L'&' && src[index_src + 1] == L'&') ||  //&&
+                    (src[index_src] == L'|' && src[index_src + 1] == L'|')) {
                     if ((src[index_src] == L'>' && src[index_src + 1] == L'=')) {
                         tokens->tokens[token_index].type = TOK_OPR_GTE;
                     } else if ((src[index_src] == L'<' && src[index_src + 1] == L'=')) {
@@ -477,7 +476,8 @@ static bool isOperator(wchar_t ch) noexcept {
             ch == L'=' || ch == L'\"' || ch == L'.' || ch == L'\'' || ch == L'“' || ch == L'‘' || ch == L'’' || ch == L'”' ||
             ch == L'|' || ch == L'&' || ch == L'^' || ch == L'%' || ch == L'!' || ch == L'！' || ch == L'{' || ch == L'}' ||
             ch == L'(' || ch == L')' || ch == L'（' || ch == L'）' || ch == L';' || ch == L'；' || ch == L'。' || ch == L'[' ||
-            ch == L'【' || ch == L']' || ch == L'】' || ch == L':' || ch == L'：');
+            ch == L'【' || ch == L']' || ch == L'】' || ch == L':' || ch == L'：' || ch == L'>' || ch == L'<' || ch == L'≥' ||
+            ch == L'≤');
 }
 void freeTokens(Tokens** tokens) noexcept {
 #ifdef HX_DEBUG
@@ -506,138 +506,138 @@ void showTokens(Tokens* tokens) {
         fwprintf(logStream, L"\33[33m\t");
         for (int i = 0; i < (tokens)->count; i++) {
             switch (tokens->tokens[i].type) {
-            case TOK_ID: {
-                fwprintf(logStream, L"[ID]");
-                break;
-            }
-            case TOK_END: {
-                fwprintf(logStream, L"[END]");
-                break;
-            }
-            case TOK_KW: {
-                fwprintf(logStream, L"[KW]");
-                break;
-            }
-            case TOK_NIL: {
-                fwprintf(logStream, L"[NIL]");
-                break;
-            }
-            case TOK_VAL: {
-                fwprintf(logStream, L"[VAL]");
-                break;
-            }
-            case TOK_OPR_MUL: {
-                fwprintf(logStream, L"[MUL]");
-                break;
-            }
-            case TOK_OPR_DIV: {
-                fwprintf(logStream, L"[DIV]");
-                break;
-            }
-            case TOK_OPR_ADD: {
-                fwprintf(logStream, L"[ADD]");
-                break;
-            }
-            case TOK_OPR_SUB: {
-                fwprintf(logStream, L"[SUB]");
-                break;
-            }
-            case TOK_OPR_SET: {
-                fwprintf(logStream, L"[SET]");
-                break;
-            }
-            case TOK_OPR_EQU: {
-                fwprintf(logStream, L"[EQU]");
-                break;
-            }
-            case TOK_OPR_NEQU: {
-                fwprintf(logStream, L"[NEQU]");
-                break;
-            }
-            case TOK_OPR_GT: {
-                fwprintf(logStream, L"[GT]");
-                break;
-            }
-            case TOK_OPR_LT: {
-                fwprintf(logStream, L"[LT]");
-                break;
-            }
-            case TOK_OPR_GTE: {
-                fwprintf(logStream, L"[GTE]");
-                break;
-            }
-            case TOK_OPR_LTE: {
-                fwprintf(logStream, L"[LTE]");
-                break;
-            }
-            case TOK_OPR_AND_LOGIC: {
-                fwprintf(logStream, L"[AND(逻辑与)]");
-                break;
-            }
-            case TOK_OPR_REFER: {
-                fwprintf(logStream, L"[REF(或与)]");
-                break;
-            }
-            case TOK_OPR_OR: {
-                fwprintf(logStream, L"[OR]");
-                break;
-            }
-            case TOK_OPR_OR_LOGIC: {
-                fwprintf(logStream, L"[OR(逻辑或)]");
-                break;
-            }
-            case TOK_OPR_NOT: {
-                fwprintf(logStream, L"[NOT]");
-                break;
-            }
-            case TOK_OPR_INC: {
-                fwprintf(logStream, L"[INC]");
-                break;
-            }
-            case TOK_OPR_DEC: {
-                fwprintf(logStream, L"[DEC]");
-                break;
-            }
-            case TOK_OPR_LQUOTE: {
-                fwprintf(logStream, L"[LQUOTE]");
-                break;
-            }
-            case TOK_OPR_RQUOTE: {
-                fwprintf(logStream, L"[RQUOTE]");
-                break;
-            }
-            case TOK_OPR_LBRACE: {
-                fwprintf(logStream, L"[LBRACE]");
-                break;
-            }
-            case TOK_OPR_RBRACE: {
-                fwprintf(logStream, L"[RBRACE]");
-                break;
-            }
-            case TOK_OPR_LBRACKET: {
-                fwprintf(logStream, L"[LBRACKET]");
-                break;
-            }
-            case TOK_OPR_RBRACKET: {
-                fwprintf(logStream, L"[RBRACKET]");
-                break;
-            }
-            case TOK_OPR_COMMA: {
-                fwprintf(logStream, L"[COMMA]");
-                break;
-            }
-            case TOK_OPR_DOT: {
-                fwprintf(logStream, L"[DOT]");
-                break;
-            }
-            case TOK_OPR_COLON: {
-                fwprintf(logStream, L"[COLON]");
-                break;
-            }
-            case TOK_OPR_POINT: {
-                fwprintf(logStream, L"[POINT]");
-                break;
-            }
+                case TOK_ID: {
+                    fwprintf(logStream, L"[ID]");
+                    break;
+                }
+                case TOK_END: {
+                    fwprintf(logStream, L"[END]");
+                    break;
+                }
+                case TOK_KW: {
+                    fwprintf(logStream, L"[KW]");
+                    break;
+                }
+                case TOK_NIL: {
+                    fwprintf(logStream, L"[NIL]");
+                    break;
+                }
+                case TOK_VAL: {
+                    fwprintf(logStream, L"[VAL]");
+                    break;
+                }
+                case TOK_OPR_MUL: {
+                    fwprintf(logStream, L"[MUL]");
+                    break;
+                }
+                case TOK_OPR_DIV: {
+                    fwprintf(logStream, L"[DIV]");
+                    break;
+                }
+                case TOK_OPR_ADD: {
+                    fwprintf(logStream, L"[ADD]");
+                    break;
+                }
+                case TOK_OPR_SUB: {
+                    fwprintf(logStream, L"[SUB]");
+                    break;
+                }
+                case TOK_OPR_SET: {
+                    fwprintf(logStream, L"[SET]");
+                    break;
+                }
+                case TOK_OPR_EQU: {
+                    fwprintf(logStream, L"[EQU]");
+                    break;
+                }
+                case TOK_OPR_NEQU: {
+                    fwprintf(logStream, L"[NEQU]");
+                    break;
+                }
+                case TOK_OPR_GT: {
+                    fwprintf(logStream, L"[GT]");
+                    break;
+                }
+                case TOK_OPR_LT: {
+                    fwprintf(logStream, L"[LT]");
+                    break;
+                }
+                case TOK_OPR_GTE: {
+                    fwprintf(logStream, L"[GTE]");
+                    break;
+                }
+                case TOK_OPR_LTE: {
+                    fwprintf(logStream, L"[LTE]");
+                    break;
+                }
+                case TOK_OPR_AND_LOGIC: {
+                    fwprintf(logStream, L"[AND(逻辑与)]");
+                    break;
+                }
+                case TOK_OPR_REFER: {
+                    fwprintf(logStream, L"[REF(或与)]");
+                    break;
+                }
+                case TOK_OPR_OR: {
+                    fwprintf(logStream, L"[OR]");
+                    break;
+                }
+                case TOK_OPR_OR_LOGIC: {
+                    fwprintf(logStream, L"[OR(逻辑或)]");
+                    break;
+                }
+                case TOK_OPR_NOT: {
+                    fwprintf(logStream, L"[NOT]");
+                    break;
+                }
+                case TOK_OPR_INC: {
+                    fwprintf(logStream, L"[INC]");
+                    break;
+                }
+                case TOK_OPR_DEC: {
+                    fwprintf(logStream, L"[DEC]");
+                    break;
+                }
+                case TOK_OPR_LQUOTE: {
+                    fwprintf(logStream, L"[LQUOTE]");
+                    break;
+                }
+                case TOK_OPR_RQUOTE: {
+                    fwprintf(logStream, L"[RQUOTE]");
+                    break;
+                }
+                case TOK_OPR_LBRACE: {
+                    fwprintf(logStream, L"[LBRACE]");
+                    break;
+                }
+                case TOK_OPR_RBRACE: {
+                    fwprintf(logStream, L"[RBRACE]");
+                    break;
+                }
+                case TOK_OPR_LBRACKET: {
+                    fwprintf(logStream, L"[LBRACKET]");
+                    break;
+                }
+                case TOK_OPR_RBRACKET: {
+                    fwprintf(logStream, L"[RBRACKET]");
+                    break;
+                }
+                case TOK_OPR_COMMA: {
+                    fwprintf(logStream, L"[COMMA]");
+                    break;
+                }
+                case TOK_OPR_DOT: {
+                    fwprintf(logStream, L"[DOT]");
+                    break;
+                }
+                case TOK_OPR_COLON: {
+                    fwprintf(logStream, L"[COLON]");
+                    break;
+                }
+                case TOK_OPR_POINT: {
+                    fwprintf(logStream, L"[POINT]");
+                    break;
+                }
             }
             fwprintf(logStream, L"(\"%ls\")", tokens->tokens[i].value ? tokens->tokens[i].value : L"(NULL)\0");
             if (tokens->tokens[i].type == TOK_END) {

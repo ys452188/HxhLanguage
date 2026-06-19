@@ -12,14 +12,18 @@ enum NodeBinaryOperator {
     BIN_OPR_DIV,
     BIN_OPR_SET,
     BIN_OPR_STRING_CONCAT,
-    BIN_OPR_EQU,   //==
-    BIN_OPR_NEQU,  //!=
-    BIN_OPR_GT,    //>
-    BIN_OPR_LT,    //<
-    BIN_OPR_OR,        // |
-    BIN_OPR_OR_LOGIC,  // ||
+    BIN_OPR_EQU,        //==
+    BIN_OPR_NEQU,       //!=
+    BIN_OPR_GT,         //>
+    BIN_OPR_LT,         //<
+    BIN_OPR_OR,         // |
+    BIN_OPR_OR_LOGIC,   // ||
     BIN_OPR_AND,        // &
     BIN_OPR_AND_LOGIC,  // &&
+};
+enum NodeUnaryOperator {
+    UAY_OPR_INC,  //++
+    UAY_OPR_DIC,  //--
 };
 
 #include "Error.h"
@@ -61,6 +65,14 @@ static void printAstNode(ASTNode* node, int level) {
 
         case NODE_UNARY:
             fwprintf(logStream, L"\033[1;35m[Unary]\033[0m op: %d\n", node->data.unary.op);
+            switch (node->data.unary.op) {
+                case UAY_OPR_INC:
+                    fwprintf(logStream, L"INC (++)\n");
+                    break;
+                case UAY_OPR_DIC:
+                    fwprintf(logStream, L"DIC (--)\n");
+                    break;
+            }
             printAstNode(node->left, level + 1);
             break;
 
@@ -84,6 +96,12 @@ static void printAstNode(ASTNode* node, int level) {
                     break;
                 case BIN_OPR_EQU:
                     fwprintf(logStream, L"EQU (==)\n");
+                    break;
+                case BIN_OPR_GT:
+                    fwprintf(logStream, L"GT (>)\n");
+                    break;
+                case BIN_OPR_LT:
+                    fwprintf(logStream, L"LT (<)\n");
                     break;
                 case BIN_OPR_NEQU:
                     fwprintf(logStream, L"NEQU (!=)\n");
@@ -129,6 +147,7 @@ void freeAST(ASTNode* node) noexcept {
     freeAST(node->left);
     freeAST(node->right);
     if (node->kind == NODE_BINARY && node->data.binary.varName != NULL) free(node->data.binary.varName);
+    if (node->kind == NODE_UNARY && node->data.unary.varName != NULL) free(node->data.unary.varName);
     if (node->kind == NODE_VAR) free(node->data.var.name);
     if (node->kind == NODE_VALUE && node->data.value.type.kind == IR_DT_STRING) free(node->data.value.val.s);
     free(node);
@@ -140,11 +159,12 @@ static int getVarIndex(const wchar_t* name, SymbolTable* table) {
     }
     return -1;
 }
-static int getPrec(HxTokenType t) {  //优先级
+static int getPrec(HxTokenType t) {  // 优先级
+    if (t == TOK_OPR_INC || t == TOK_OPR_DEC) return 4;
     if (t == TOK_OPR_MUL || t == TOK_OPR_DIV) return 3;
     if (t == TOK_OPR_ADD || t == TOK_OPR_SUB || t == TOK_OPR_REFER || t == TOK_OPR_OR) return 2;
-    if (t == TOK_OPR_EQU || t == TOK_OPR_NEQU) return 1;
-    if (t == TOK_OPR_SET || t == TOK_OPR_OR_LOGIC || t== TOK_OPR_AND_LOGIC) return 0;
+    if (t == TOK_OPR_EQU || t == TOK_OPR_NEQU || t == TOK_OPR_GT || t == TOK_OPR_LT) return 1;
+    if (t == TOK_OPR_SET || t == TOK_OPR_OR_LOGIC || t == TOK_OPR_AND_LOGIC) return 0;
     return -1;
 }
 static ASTNode* parsePrimary(Token* tokens, int* index, int size, FunCallPitchTable& pitchTable, SymbolTable* table,
@@ -430,7 +450,7 @@ static ASTNode* parsePrimary(Token* tokens, int* index, int size, FunCallPitchTa
                 }
 
                 movNode->kind = NODE_BINARY;
-                movNode->data.binary.op = 4;
+                movNode->data.binary.op = BIN_OPR_SET;
                 movNode->data.binary.varName = wcsdup(curr->value);
 
                 movNode->left = node;
@@ -444,8 +464,59 @@ static ASTNode* parsePrimary(Token* tokens, int* index, int size, FunCallPitchTa
                 }
                 // 类型推导
                 movNode->resultType = movNode->right->resultType;
-
                 return movNode;
+            } else if (next->type == TOK_OPR_INC) {  // 自增
+                if (symIdx == -1) {
+                    setError(ERR_CANNOT_FIND_SYMBOL, curr->line, curr->value);
+                    *err = 255;
+                    freeAST(node);
+                    return NULL;
+                }
+                (*index)++;  //++
+                ASTNode* incNode = (ASTNode*)calloc(1, sizeof(ASTNode));
+                if (!incNode) {
+                    *err = -1;
+                    return NULL;
+                }
+
+                incNode->kind = NODE_UNARY;
+                incNode->data.unary.op = UAY_OPR_INC;
+                incNode->data.unary.varName = wcsdup(curr->value);
+                incNode->left = node;
+
+                if (*err) {
+                    free(incNode);
+                    return NULL;
+                }
+                incNode->resultType = node->resultType;
+                (*index)++;
+                return incNode;
+            } else if (next->type == TOK_OPR_DEC) {  // 自减
+                if (symIdx == -1) {
+                    setError(ERR_CANNOT_FIND_SYMBOL, curr->line, curr->value);
+                    *err = 255;
+                    freeAST(node);
+                    return NULL;
+                }
+                (*index)++;  //++
+                ASTNode* decNode = (ASTNode*)calloc(1, sizeof(ASTNode));
+                if (!decNode) {
+                    *err = -1;
+                    return NULL;
+                }
+
+                decNode->kind = NODE_UNARY;
+                decNode->data.unary.op = UAY_OPR_DIC;
+                decNode->data.unary.varName = wcsdup(curr->value);
+                decNode->left = node;
+
+                if (*err) {
+                    free(decNode);
+                    return NULL;
+                }
+                decNode->resultType = node->resultType;
+                (*index)++;
+                return decNode;
             } else {
                 if (symIdx == -1) {
                     setError(ERR_CANNOT_FIND_SYMBOL, curr->line, curr->value);
@@ -497,6 +568,7 @@ ASTNode* parseExprRec(Token* tokens, int* index, int size, FunCallPitchTable& pi
         int prec = getPrec(opTok->type);
         // 当前表达式结束
         if (prec < 0 || prec < min_prec) break;
+
         // 消耗掉运算符
         (*index)++;
         // 递归解析右侧操作数

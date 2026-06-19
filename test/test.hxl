@@ -14,6 +14,12 @@
     newFloat = (float)(114.514+newVar1);
     
     f((int)newFloat, 114);
+    
+    新变量 = 0;
+    repeat-> {
+        __hx_write_string__ "Hello, HxHLanguage!\n"。
+        新变量++;
+    } until：新变量>newFloat;
    
     返回：0。  
 }
