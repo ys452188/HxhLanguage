@@ -117,10 +117,10 @@ fun : myFunction ( myArg : int ) : int -> {
 
 ### 中文风格语法
 
-使用 `定义函数` 声明：
+使用 `函数` 声明：
 
 ```text
-定义函数 : myFunction ( myArg : 整型 ) , 返回类型是 : 整型 -> {
+函数 : myFunction ( myArg : 整型 ) , 返回类型是 : 整型 -> {
     返回 : 1 ;
 }
 
