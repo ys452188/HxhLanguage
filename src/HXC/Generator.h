@@ -951,15 +951,25 @@ static int generateStatement(int& index, FunCallPitchTable& pitchTable, Constant
                         delete (proc);
                         return 255;
                     }
-                    if (function->bodyTokens[index + 2].type != TOK_OPR_RBRACKET) {
+                    index++;
+                    if (function->bodyTokens[index+1].type != TOK_OPR_RBRACKET && function->bodyTokens[index + 2].type != TOK_OPR_RBRACKET) {
+                        #ifdef HX_DEBUG
+                            log("index+1: %ls,   index+2: %ls", function->bodyTokens[index + 1].value,function->bodyTokens[index + 2].value);
+                        #endif
                         setError(ERR_TYPE, currentToken.line, NULL);
                         *err = 255;
                         delete (proc);
                         return 255;
                     }
+                    int arrSize = -1;
+                    if(function->bodyTokens[index + 1].type == TOK_VAL) {
+                        arrSize = wcstol(function->bodyTokens[index + 1].value, nullptr, 0);
+                        newVar.type.arrayLength = arrSize;
+                        index++;
+                    }
                     newVar.type.kind = IR_DT_INT_ARR;
                     newVar.size = 4;
-                    index += 2;
+                    index++;
                 }
             } else if (wcscmp(function->bodyTokens[index].value, L"float") == 0 ||
                        wcscmp(function->bodyTokens[index].value, L"浮点型") == 0) {
@@ -975,16 +985,21 @@ static int generateStatement(int& index, FunCallPitchTable& pitchTable, Constant
                         *err = 255;
                         delete (proc);
                         return 255;
-                    }
-                    if (function->bodyTokens[index + 2].type != TOK_OPR_RBRACKET) {
+                    }index++;
+                    if (function->bodyTokens[index + 1].type != TOK_OPR_RBRACKET && function->bodyTokens[index + 2].type != TOK_OPR_RBRACKET) {
                         setError(ERR_TYPE, currentToken.line, NULL);
                         *err = 255;
                         delete (proc);
                         return 255;
                     }
+                    int arrSize = -1;
+                    if(function->bodyTokens[index + 1].type == TOK_VAL) {
+                        arrSize = wcstol(function->bodyTokens[index + 1].value, nullptr, 0);
+                        newVar.type.arrayLength = arrSize;index++;
+                    }
                     newVar.type.kind = IR_DT_FLOAT_ARR;
                     newVar.size = 4;
-                    index += 2;
+                    index++;
                 }
             } else if (wcscmp(function->bodyTokens[index].value, L"char") == 0 ||
                        wcscmp(function->bodyTokens[index].value, L"字符型") == 0) {
@@ -1000,16 +1015,22 @@ static int generateStatement(int& index, FunCallPitchTable& pitchTable, Constant
                         *err = 255;
                         delete (proc);
                         return 255;
-                    }
-                    if (function->bodyTokens[index + 2].type != TOK_OPR_RBRACKET) {
+                    }index++;
+                    if (function->bodyTokens[index + 1].type != TOK_OPR_RBRACKET && function->bodyTokens[index + 2].type != TOK_OPR_RBRACKET) {
                         setError(ERR_TYPE, currentToken.line, NULL);
                         *err = 255;
                         delete (proc);
                         return 255;
                     }
+                    int arrSize = -1;
+                    if(function->bodyTokens[index + 1].type == TOK_VAL) {
+                        arrSize = wcstol(function->bodyTokens[index + 1].value, nullptr, 0);
+                        newVar.type.arrayLength = arrSize;
+                        index++;
+                    }
                     newVar.type.kind = IR_DT_CHAR_ARR;
                     newVar.size = 4;
-                    index += 2;
+                    index++;
                 }
             } else if (wcscmp(function->bodyTokens[index].value, L"str") == 0 ||
                        wcscmp(function->bodyTokens[index].value, L"字符串型") == 0) {
@@ -1024,15 +1045,21 @@ static int generateStatement(int& index, FunCallPitchTable& pitchTable, Constant
                         *err = 255;
                         delete (proc);
                         return 255;
-                    }
-                    if (function->bodyTokens[index + 2].type != TOK_OPR_RBRACKET) {
+                    }index++;
+                    if (function->bodyTokens[index + 1].type != TOK_OPR_RBRACKET && function->bodyTokens[index + 2].type != TOK_OPR_RBRACKET) {
                         setError(ERR_TYPE, currentToken.line, NULL);
                         *err = 255;
                         delete (proc);
                         return 255;
                     }
+                    int arrSize = -1;
+                    if(function->bodyTokens[index + 1].type == TOK_VAL) {
+                        arrSize = wcstol(function->bodyTokens[index + 1].value, nullptr, 0);
+                        newVar.type.arrayLength = arrSize;
+                        index++;
+                    }
                     newVar.type.kind = IR_DT_STRING_ARR;
-                    index += 2;
+                    index++;
                 }
             }
             if (function->bodyTokens[index].type == TOK_ID) {
@@ -1059,14 +1086,21 @@ static int generateStatement(int& index, FunCallPitchTable& pitchTable, Constant
                         delete (proc);
                         return 255;
                     }
-                    if (function->bodyTokens[index + 2].type != TOK_OPR_RBRACKET) {
+                    index++;
+                   if (function->bodyTokens[index + 1].type != TOK_OPR_RBRACKET && function->bodyTokens[index + 2].type != TOK_OPR_RBRACKET) {
                         setError(ERR_TYPE, currentToken.line, NULL);
                         *err = 255;
                         delete (proc);
                         return 255;
                     }
+                    int arrSize = -1;
+                    if(function->bodyTokens[index + 1].type == TOK_VAL) {
+                        arrSize = wcstol(function->bodyTokens[index + 1].value, nullptr, 0);
+                        newVar.type.arrayLength = arrSize;
+                        index++;
+                    }
                     newVar.type.kind = IR_DT_CUSTOM_ARR;
-                    index += 2;
+                    index++;
                 }
             }
         }

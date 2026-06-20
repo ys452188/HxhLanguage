@@ -25,6 +25,7 @@ typedef enum IR_DataTypeKind {
 } IR_DataTypeKind;
 typedef struct IR_DataType {
     IR_DataTypeKind kind;
+    int arrayLength;
     wchar_t* customTypeName;  // 当kind为IR_DT_CUSTOM 时使用
 } IR_DataType;
 //-----------------------------------------------------------

@@ -165,102 +165,147 @@ int deduceFunctionReturnTypes(IR_Program* program) {
                     setError(ERR_DEF_VAR, currentToken.line, NULL);
                     return 255;
                 }
-                if (wcscmp(fun->bodyTokens[index].value, L"int") == 0 || wcscmp(fun->bodyTokens[index].value, L"整型") == 0) {
+                IR_Function* function = fun;
+                IR_Program* currentProgram = program;
+                if (wcscmp(function->bodyTokens[index].value, L"int") == 0 ||
+                        wcscmp(function->bodyTokens[index].value, L"整型") == 0) {
                     newVar.type.kind = IR_DT_INT;
+                    newVar.size = 4;
                     // int&
-                    if (fun->bodyTokens[index + 1].type == TOK_OPR_REFER) {
+                    if (function->bodyTokens[index + 1].type == TOK_OPR_REFER) {
                         newVar.type.kind = IR_DT_INT_REFER;
+                        newVar.size = 4;
                         index++;
                         // int[]
-                    } else if (fun->bodyTokens[index + 1].type == TOK_OPR_LBRACKET) {
-                        if (index + 2 >= fun->body_token_count) {
+                    } else if (function->bodyTokens[index + 1].type == TOK_OPR_LBRACKET) {
+                        if (index + 2 >= function->body_token_count) {
                             setError(ERR_TYPE, currentToken.line, NULL);
                             return 255;
                         }
-                        if (fun->bodyTokens[index + 2].type != TOK_OPR_RBRACKET) {
+                        index++;
+                        if (!(function->bodyTokens[index + 1].type == TOK_OPR_RBRACKET || function->bodyTokens[index + 2].type == TOK_OPR_RBRACKET)) {
+                            #ifdef HX_DEBUG
+                            log("index+1: %ls,   index+2: %ls", function->bodyTokens[index + 1].value,function->bodyTokens[index + 2].value);
+                            #endif
                             setError(ERR_TYPE, currentToken.line, NULL);
                             return 255;
+                        }
+                        int arrSize = -1;
+                        if(function->bodyTokens[index + 1].type == TOK_VAL) {
+                            arrSize = wcstol(function->bodyTokens[index + 1].value, nullptr, 0);
+                            newVar.type.arrayLength = arrSize;
                         }
                         newVar.type.kind = IR_DT_INT_ARR;
+                        newVar.size = 4;
                         index += 2;
                     }
-                } else if (wcscmp(fun->bodyTokens[index].value, L"float") == 0 ||
-                           wcscmp(fun->bodyTokens[index].value, L"浮点型") == 0) {
+                } else if (wcscmp(function->bodyTokens[index].value, L"float") == 0 ||
+                           wcscmp(function->bodyTokens[index].value, L"浮点型") == 0) {
                     newVar.type.kind = IR_DT_FLOAT;
-                    if (fun->bodyTokens[index + 1].type == TOK_OPR_REFER) {
+                    newVar.size = 8;
+                    if (function->bodyTokens[index + 1].type == TOK_OPR_REFER) {
                         newVar.type.kind = IR_DT_FLOAT_REFER;
+                        newVar.size = 4;  // 实为void*大小
                         index++;
-                    } else if (fun->bodyTokens[index + 1].type == TOK_OPR_LBRACKET) {
-                        if (index + 2 >= fun->body_token_count) {
+                    } else if (function->bodyTokens[index + 1].type == TOK_OPR_LBRACKET) {
+                        if (index + 2 >= function->body_token_count) {
+                            setError(ERR_TYPE, currentToken.line, NULL);
+                            return 255;
+                        }index++;
+                        if (function->bodyTokens[index + 1].type != TOK_OPR_RBRACKET && function->bodyTokens[index + 2].type != TOK_OPR_RBRACKET) {
                             setError(ERR_TYPE, currentToken.line, NULL);
                             return 255;
                         }
-                        if (fun->bodyTokens[index + 2].type != TOK_OPR_RBRACKET) {
-                            setError(ERR_TYPE, currentToken.line, NULL);
-                            return 255;
+                        int arrSize = -1;
+                        if(function->bodyTokens[index + 1].type == TOK_VAL) {
+                            arrSize = wcstol(function->bodyTokens[index + 1].value, nullptr, 0);
+                            newVar.type.arrayLength = arrSize;
                         }
                         newVar.type.kind = IR_DT_FLOAT_ARR;
+                        newVar.size = 4;
                         index += 2;
                     }
-                } else if (wcscmp(fun->bodyTokens[index].value, L"char") == 0 ||
-                           wcscmp(fun->bodyTokens[index].value, L"字符型") == 0) {
+                } else if (wcscmp(function->bodyTokens[index].value, L"char") == 0 ||
+                           wcscmp(function->bodyTokens[index].value, L"字符型") == 0) {
                     newVar.type.kind = IR_DT_CHAR;
-                    if (fun->bodyTokens[index + 1].type == TOK_OPR_REFER) {
+                    newVar.size = 2;
+                    if (function->bodyTokens[index + 1].type == TOK_OPR_REFER) {
+                        newVar.size = 4;
                         newVar.type.kind = IR_DT_CHAR_REFER;
                         index++;
-                    } else if (fun->bodyTokens[index + 1].type == TOK_OPR_LBRACKET) {
-                        if (index + 2 >= fun->body_token_count) {
+                    } else if (function->bodyTokens[index + 1].type == TOK_OPR_LBRACKET) {
+                        if (index + 2 >= function->body_token_count) {
                             setError(ERR_TYPE, currentToken.line, NULL);
                             return 255;
                         }
-                        if (fun->bodyTokens[index + 2].type != TOK_OPR_RBRACKET) {
+                        index++;
+                        if (function->bodyTokens[index + 1].type != TOK_OPR_RBRACKET && function->bodyTokens[index + 2].type != TOK_OPR_RBRACKET) {
                             setError(ERR_TYPE, currentToken.line, NULL);
                             return 255;
+                        }
+                        int arrSize = -1;
+                        if(function->bodyTokens[index + 1].type == TOK_VAL) {
+                            arrSize = wcstol(function->bodyTokens[index + 1].value, nullptr, 0);
+                            newVar.type.arrayLength = arrSize;
                         }
                         newVar.type.kind = IR_DT_CHAR_ARR;
+                        newVar.size = 4;
                         index += 2;
                     }
-                } else if (wcscmp(fun->bodyTokens[index].value, L"str") == 0 ||
-                           wcscmp(fun->bodyTokens[index].value, L"字符串型") == 0) {
+                } else if (wcscmp(function->bodyTokens[index].value, L"str") == 0 ||
+                           wcscmp(function->bodyTokens[index].value, L"字符串型") == 0) {
                     newVar.type.kind = IR_DT_STRING;
-                    if (fun->bodyTokens[index + 1].type == TOK_OPR_REFER) {
+                    newVar.size = 4;
+                    if (function->bodyTokens[index + 1].type == TOK_OPR_REFER) {
                         newVar.type.kind = IR_DT_STRING_REFER;
                         index++;
-                    } else if (fun->bodyTokens[index + 1].type == TOK_OPR_LBRACKET) {
-                        if (index + 2 >= fun->body_token_count) {
+                    } else if (function->bodyTokens[index + 1].type == TOK_OPR_LBRACKET) {
+                        if (index + 2 >= function->body_token_count) {
                             setError(ERR_TYPE, currentToken.line, NULL);
                             return 255;
                         }
-                        if (fun->bodyTokens[index + 2].type != TOK_OPR_RBRACKET) {
+                        index++;
+                        if (function->bodyTokens[index + 1].type != TOK_OPR_RBRACKET && function->bodyTokens[index + 2].type != TOK_OPR_RBRACKET) {
                             setError(ERR_TYPE, currentToken.line, NULL);
                             return 255;
+                        }
+                        int arrSize = -1;
+                        if(function->bodyTokens[index + 1].type == TOK_VAL) {
+                            arrSize = wcstol(function->bodyTokens[index + 1].value, nullptr, 0);
+                            newVar.type.arrayLength = arrSize;
                         }
                         newVar.type.kind = IR_DT_STRING_ARR;
                         index += 2;
                     }
                 }
-                if (fun->bodyTokens[index].type == TOK_ID) {
+                if (function->bodyTokens[index].type == TOK_ID) {
                     newVar.type.kind = IR_DT_CUSTOM;
-                    if (getClassByName(fun->bodyTokens[index].value, program) == NULL) {
-                        setError(ERR_UNKNOWN_TYPE, fun->bodyTokens[index].line, fun->bodyTokens[index].value);
+                    if (getClassByName(function->bodyTokens[index].value, currentProgram) == NULL) {
+                        setError(ERR_UNKNOWN_TYPE, function->bodyTokens[index].line, function->bodyTokens[index].value);
                         return 255;
                     }
-                    newVar.type.customTypeName = (wchar_t*)calloc(wcslen(fun->bodyTokens[index].value) + 1, sizeof(wchar_t));
+                    newVar.type.customTypeName = (wchar_t*)calloc(wcslen(function->bodyTokens[index].value) + 1, sizeof(wchar_t));
                     if (!(newVar.type.customTypeName)) {
                         return -1;
                     }
-                    wcscpy(newVar.type.customTypeName, fun->bodyTokens[index].value);
-                    if (fun->bodyTokens[index + 1].type == TOK_OPR_REFER) {
+                    wcscpy(newVar.type.customTypeName, function->bodyTokens[index].value);
+                    if (function->bodyTokens[index + 1].type == TOK_OPR_REFER) {
                         newVar.type.kind = IR_DT_CUSTOM_REFER;
                         index++;
-                    } else if (fun->bodyTokens[index + 1].type == TOK_OPR_LBRACKET) {
-                        if (index + 2 >= fun->body_token_count) {
+                    } else if (function->bodyTokens[index + 1].type == TOK_OPR_LBRACKET) {
+                        if (index + 2 >= function->body_token_count) {
                             setError(ERR_TYPE, currentToken.line, NULL);
                             return 255;
                         }
-                        if (fun->bodyTokens[index + 2].type != TOK_OPR_RBRACKET) {
+                        index++;
+                        if (function->bodyTokens[index + 1].type != TOK_OPR_RBRACKET && function->bodyTokens[index + 2].type != TOK_OPR_RBRACKET) {
                             setError(ERR_TYPE, currentToken.line, NULL);
                             return 255;
+                        }
+                        int arrSize = -1;
+                        if(function->bodyTokens[index + 1].type == TOK_VAL) {
+                            arrSize = wcstol(function->bodyTokens[index + 1].value, nullptr, 0);
+                            newVar.type.arrayLength = arrSize;
                         }
                         newVar.type.kind = IR_DT_CUSTOM_ARR;
                         index += 2;
@@ -308,54 +353,54 @@ int deduceFunctionReturnTypes(IR_Program* program) {
         }
 #ifdef HX_DEBUG
         switch (fun->returnType.kind) {
-            case IR_DT_VOID:
-                log(L"类型推导：%ls -> %ls", fun->name, L"void");
-                break;
-            case IR_DT_INT:
-                log(L"类型推导：%ls -> %ls", fun->name, L"int");
-                break;
-            case IR_DT_INT_ARR:
-                log(L"类型推导：%ls -> %ls", fun->name, L"int[]");
-                break;
-            case IR_DT_INT_REFER:
-                log(L"类型推导：%ls -> %ls", fun->name, L"int&");
-                break;
-            case IR_DT_CHAR:
-                log(L"类型推导：%ls -> %ls", fun->name, L"char");
-                break;
-            case IR_DT_CHAR_ARR:
-                log(L"类型推导：%ls -> %ls", fun->name, L"char[]");
-                break;
-            case IR_DT_CHAR_REFER:
-                log(L"类型推导：%ls -> %ls", fun->name, L"char&");
-                break;
-            case IR_DT_FLOAT:
-                log(L"类型推导：%ls -> %ls", fun->name, L"float");
-                break;
-            case IR_DT_FLOAT_ARR:
-                log(L"类型推导：%ls -> %ls", fun->name, L"float[]");
-                break;
-            case IR_DT_FLOAT_REFER:
-                log(L"类型推导：%ls -> %ls", fun->name, L"float&");
-                break;
-            case IR_DT_STRING:
-                log(L"类型推导：%ls -> %ls", fun->name, L"str");
-                break;
-            case IR_DT_STRING_ARR:
-                log(L"类型推导：%ls -> %ls", fun->name, L"str[]");
-                break;
-            case IR_DT_STRING_REFER:
-                log(L"类型推导：%ls -> %ls", fun->name, L"str&");
-                break;
-            case IR_DT_CUSTOM:
-                log(L"类型推导：%ls -> %ls", fun->name, fun->returnType.customTypeName);
-                break;
-            case IR_DT_CUSTOM_ARR:
-                log(L"类型推导：%ls -> %ls[]", fun->name, fun->returnType.customTypeName);
-                break;
-            case IR_DT_CUSTOM_REFER:
-                log(L"类型推导：%ls -> %ls&", fun->name, fun->returnType.customTypeName);
-                break;
+        case IR_DT_VOID:
+            log(L"类型推导：%ls -> %ls", fun->name, L"void");
+            break;
+        case IR_DT_INT:
+            log(L"类型推导：%ls -> %ls", fun->name, L"int");
+            break;
+        case IR_DT_INT_ARR:
+            log(L"类型推导：%ls -> %ls", fun->name, L"int[]");
+            break;
+        case IR_DT_INT_REFER:
+            log(L"类型推导：%ls -> %ls", fun->name, L"int&");
+            break;
+        case IR_DT_CHAR:
+            log(L"类型推导：%ls -> %ls", fun->name, L"char");
+            break;
+        case IR_DT_CHAR_ARR:
+            log(L"类型推导：%ls -> %ls", fun->name, L"char[]");
+            break;
+        case IR_DT_CHAR_REFER:
+            log(L"类型推导：%ls -> %ls", fun->name, L"char&");
+            break;
+        case IR_DT_FLOAT:
+            log(L"类型推导：%ls -> %ls", fun->name, L"float");
+            break;
+        case IR_DT_FLOAT_ARR:
+            log(L"类型推导：%ls -> %ls", fun->name, L"float[]");
+            break;
+        case IR_DT_FLOAT_REFER:
+            log(L"类型推导：%ls -> %ls", fun->name, L"float&");
+            break;
+        case IR_DT_STRING:
+            log(L"类型推导：%ls -> %ls", fun->name, L"str");
+            break;
+        case IR_DT_STRING_ARR:
+            log(L"类型推导：%ls -> %ls", fun->name, L"str[]");
+            break;
+        case IR_DT_STRING_REFER:
+            log(L"类型推导：%ls -> %ls", fun->name, L"str&");
+            break;
+        case IR_DT_CUSTOM:
+            log(L"类型推导：%ls -> %ls", fun->name, fun->returnType.customTypeName);
+            break;
+        case IR_DT_CUSTOM_ARR:
+            log(L"类型推导：%ls -> %ls[]", fun->name, fun->returnType.customTypeName);
+            break;
+        case IR_DT_CUSTOM_REFER:
+            log(L"类型推导：%ls -> %ls&", fun->name, fun->returnType.customTypeName);
+            break;
         }
 #endif
     }

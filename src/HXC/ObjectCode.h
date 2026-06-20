@@ -52,6 +52,9 @@ enum {
     OP_INT_TO_STRING,
     // 连接字符串
     OP_STRING_CONCAT,
+    
+    OP_HEAP_ALLOC,
+    OP_LOAD_ELEMENT_FROM_ARRAY,
 };
 typedef uint8_t ParamType;
 enum {

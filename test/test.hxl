@@ -19,7 +19,9 @@
     repeat-> {
         __hx_write_string__ "Hello, HxHLanguage!\n"。
         新变量++;
-    } until：新变量>newFloat;
+    } until：新变量>114;
+    
+    var:newArr:int[];
    
     返回：0。  
 }

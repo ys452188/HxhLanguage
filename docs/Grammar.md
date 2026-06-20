@@ -132,7 +132,7 @@ fun : myFunction ( myArg : int ) : int -> {
 
 ### 类的声明
 
-* **英文风格**：`class : [parentClass ->] myClass { ... }` （箭头前面的是父类）
+* **英文风格**：`cls : [parentClass ->] myClass { ... }` （箭头前面的是父类）
 * **中文风格**：`定义类 : myClass [ , 父类是 : parentClass ] -> { ... }`
 
 ### 访问权限修饰符

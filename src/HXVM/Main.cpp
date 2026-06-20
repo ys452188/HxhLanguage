@@ -110,7 +110,11 @@ void signalHandler(int signalNumber) {
 }
 void initLocale(void) {
     // 设置Locale
-    setlocale(LC_ALL, "C.UTF-8");
+    if (!setlocale(LC_ALL, "zh_CN.UTF-8")) {
+        if (!setlocale(LC_ALL, "en_US.UTF-8")) {
+            setlocale(LC_ALL, "C.UTF-8");
+        }
+    }
     // 设置宽字符流的定向
     fwide(stdout, 1);  // 1 = 宽字符定向
 #ifdef _WIN32
