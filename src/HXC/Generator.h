@@ -952,17 +952,19 @@ static int generateStatement(int& index, FunCallPitchTable& pitchTable, Constant
                         return 255;
                     }
                     index++;
-                    if (function->bodyTokens[index+1].type != TOK_OPR_RBRACKET && function->bodyTokens[index + 2].type != TOK_OPR_RBRACKET) {
-                        #ifdef HX_DEBUG
-                            log("index+1: %ls,   index+2: %ls", function->bodyTokens[index + 1].value,function->bodyTokens[index + 2].value);
-                        #endif
+                    if (function->bodyTokens[index + 1].type != TOK_OPR_RBRACKET &&
+                        function->bodyTokens[index + 2].type != TOK_OPR_RBRACKET) {
+#ifdef HX_DEBUG
+                        log("index+1: %ls,   index+2: %ls", function->bodyTokens[index + 1].value,
+                            function->bodyTokens[index + 2].value);
+#endif
                         setError(ERR_TYPE, currentToken.line, NULL);
                         *err = 255;
                         delete (proc);
                         return 255;
                     }
                     int arrSize = -1;
-                    if(function->bodyTokens[index + 1].type == TOK_VAL) {
+                    if (function->bodyTokens[index + 1].type == TOK_VAL) {
                         arrSize = wcstol(function->bodyTokens[index + 1].value, nullptr, 0);
                         newVar.type.arrayLength = arrSize;
                         index++;
@@ -985,17 +987,20 @@ static int generateStatement(int& index, FunCallPitchTable& pitchTable, Constant
                         *err = 255;
                         delete (proc);
                         return 255;
-                    }index++;
-                    if (function->bodyTokens[index + 1].type != TOK_OPR_RBRACKET && function->bodyTokens[index + 2].type != TOK_OPR_RBRACKET) {
+                    }
+                    index++;
+                    if (function->bodyTokens[index + 1].type != TOK_OPR_RBRACKET &&
+                        function->bodyTokens[index + 2].type != TOK_OPR_RBRACKET) {
                         setError(ERR_TYPE, currentToken.line, NULL);
                         *err = 255;
                         delete (proc);
                         return 255;
                     }
                     int arrSize = -1;
-                    if(function->bodyTokens[index + 1].type == TOK_VAL) {
+                    if (function->bodyTokens[index + 1].type == TOK_VAL) {
                         arrSize = wcstol(function->bodyTokens[index + 1].value, nullptr, 0);
-                        newVar.type.arrayLength = arrSize;index++;
+                        newVar.type.arrayLength = arrSize;
+                        index++;
                     }
                     newVar.type.kind = IR_DT_FLOAT_ARR;
                     newVar.size = 4;
@@ -1015,15 +1020,17 @@ static int generateStatement(int& index, FunCallPitchTable& pitchTable, Constant
                         *err = 255;
                         delete (proc);
                         return 255;
-                    }index++;
-                    if (function->bodyTokens[index + 1].type != TOK_OPR_RBRACKET && function->bodyTokens[index + 2].type != TOK_OPR_RBRACKET) {
+                    }
+                    index++;
+                    if (function->bodyTokens[index + 1].type != TOK_OPR_RBRACKET &&
+                        function->bodyTokens[index + 2].type != TOK_OPR_RBRACKET) {
                         setError(ERR_TYPE, currentToken.line, NULL);
                         *err = 255;
                         delete (proc);
                         return 255;
                     }
                     int arrSize = -1;
-                    if(function->bodyTokens[index + 1].type == TOK_VAL) {
+                    if (function->bodyTokens[index + 1].type == TOK_VAL) {
                         arrSize = wcstol(function->bodyTokens[index + 1].value, nullptr, 0);
                         newVar.type.arrayLength = arrSize;
                         index++;
@@ -1045,15 +1052,17 @@ static int generateStatement(int& index, FunCallPitchTable& pitchTable, Constant
                         *err = 255;
                         delete (proc);
                         return 255;
-                    }index++;
-                    if (function->bodyTokens[index + 1].type != TOK_OPR_RBRACKET && function->bodyTokens[index + 2].type != TOK_OPR_RBRACKET) {
+                    }
+                    index++;
+                    if (function->bodyTokens[index + 1].type != TOK_OPR_RBRACKET &&
+                        function->bodyTokens[index + 2].type != TOK_OPR_RBRACKET) {
                         setError(ERR_TYPE, currentToken.line, NULL);
                         *err = 255;
                         delete (proc);
                         return 255;
                     }
                     int arrSize = -1;
-                    if(function->bodyTokens[index + 1].type == TOK_VAL) {
+                    if (function->bodyTokens[index + 1].type == TOK_VAL) {
                         arrSize = wcstol(function->bodyTokens[index + 1].value, nullptr, 0);
                         newVar.type.arrayLength = arrSize;
                         index++;
@@ -1087,14 +1096,15 @@ static int generateStatement(int& index, FunCallPitchTable& pitchTable, Constant
                         return 255;
                     }
                     index++;
-                   if (function->bodyTokens[index + 1].type != TOK_OPR_RBRACKET && function->bodyTokens[index + 2].type != TOK_OPR_RBRACKET) {
+                    if (function->bodyTokens[index + 1].type != TOK_OPR_RBRACKET &&
+                        function->bodyTokens[index + 2].type != TOK_OPR_RBRACKET) {
                         setError(ERR_TYPE, currentToken.line, NULL);
                         *err = 255;
                         delete (proc);
                         return 255;
                     }
                     int arrSize = -1;
-                    if(function->bodyTokens[index + 1].type == TOK_VAL) {
+                    if (function->bodyTokens[index + 1].type == TOK_VAL) {
                         arrSize = wcstol(function->bodyTokens[index + 1].value, nullptr, 0);
                         newVar.type.arrayLength = arrSize;
                         index++;

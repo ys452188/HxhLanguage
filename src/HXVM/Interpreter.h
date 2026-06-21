@@ -133,8 +133,8 @@ typedef enum OpStackType {
 typedef struct _OpStack {
     OpStackType type;
     int size;
-    char value[8];  // type为string时存wchar_t*
-    char isTmpHeap;   //是否是临时分配的堆內存
+    char value[8];   // type为string时存wchar_t*
+    char isTmpHeap;  // 是否是临时分配的堆內存
 } _OpStack;
 typedef struct OpStack {
     _OpStack opStack[OP_STACK_SIZE];
@@ -1026,9 +1026,9 @@ inline int interpretInstruction(Instruction& inst, OpStack& opStack, char*& stac
 #ifdef HX_DEBUG
             wprintf(LOG_LABEL L"char->str\n");
 #endif
-            wchar_t* newData = (wchar_t*)memoryAllocer.hxMalloc(2*sizeof(wchar_t));
+            wchar_t* newData = (wchar_t*)memoryAllocer.hxMalloc(2 * sizeof(wchar_t));
             *((wchar_t*)newData) = *((uint16_t*)opStack.opStack[opStack.top - 1].value);
-            
+
             memcpy(opStack.opStack[opStack.top - 1].value, &newData, sizeof(wchar_t*));
             opStack.opStack[opStack.top - 1].type = TYPE_STRING;
             opStack.opStack[opStack.top - 1].isTmpHeap = true;
