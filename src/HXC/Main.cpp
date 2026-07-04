@@ -1,5 +1,6 @@
 #include "config.h"
 #define HXC_VERSION 0.114f
+#include "GUIMenu/GUIMenu.h"
 // #define HX_DEBUG
 #include <errno.h>
 #include <stdio.h>
@@ -45,6 +46,11 @@ int main(int argc, char* argv[]) {
         path = "../test/test.hxl";
         objPath = "../test/out.hxo";
 #else
+        if(argc == 1) {
+            int flag = drawGUIMenu();
+            if(flag == -1) return -1;
+            if(flag == 255) return 0;
+        }
         for (int i = 1; i < argc; i++) {
             if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--version") == 0) {
                 fwprintf(outputStream, L"\33[1;34m[INFO]\33[0m当时版本是 %f 喵~\n快来操作hxc喵\n", HXC_VERSION);

@@ -1,3 +1,4 @@
 # 忽略构建和编辑器目录
 build/
+bin/
 .vscode/
