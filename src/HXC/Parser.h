@@ -337,7 +337,7 @@ static ASTNode* parsePrimary(Token* tokens, int* index, int size, FunCallPitchTa
                     free(arrayAccessNode);
                     return NULL;
                 }
-                switch(node->resultType.kind) {   // 决定结果类型
+                switch (node->resultType.kind) {  // 决定结果类型
                     case IR_DT_INT:
                     case IR_DT_FLOAT:
                     case IR_DT_CHAR:
@@ -351,12 +351,18 @@ static ASTNode* parsePrimary(Token* tokens, int* index, int size, FunCallPitchTa
                         return NULL;
                         break;
                     default:
-                        if(node->resultType.kind == IR_DT_INT_ARR) node->resultType.kind = IR_DT_INT;
-                        else if(node->resultType.kind == IR_DT_FLOAT_ARR) node->resultType.kind = IR_DT_FLOAT;
-                        else if(node->resultType.kind == IR_DT_CHAR_ARR) node->resultType.kind = IR_DT_CHAR;
-                        else if(node->resultType.kind == IR_DT_STRING_ARR) node->resultType.kind = IR_DT_STRING;
-                        else if(node->resultType.kind == IR_DT_BOOL_ARR) node->resultType.kind = IR_DT_BOOL;
-                        else if(node->resultType.kind == IR_DT_CUSTOM_ARR) node->resultType.kind = IR_DT_CUSTOM;
+                        if (node->resultType.kind == IR_DT_INT_ARR)
+                            node->resultType.kind = IR_DT_INT;
+                        else if (node->resultType.kind == IR_DT_FLOAT_ARR)
+                            node->resultType.kind = IR_DT_FLOAT;
+                        else if (node->resultType.kind == IR_DT_CHAR_ARR)
+                            node->resultType.kind = IR_DT_CHAR;
+                        else if (node->resultType.kind == IR_DT_STRING_ARR)
+                            node->resultType.kind = IR_DT_STRING;
+                        else if (node->resultType.kind == IR_DT_BOOL_ARR)
+                            node->resultType.kind = IR_DT_BOOL;
+                        else if (node->resultType.kind == IR_DT_CUSTOM_ARR)
+                            node->resultType.kind = IR_DT_CUSTOM;
                         break;
                 }
 
@@ -367,10 +373,8 @@ static ASTNode* parsePrimary(Token* tokens, int* index, int size, FunCallPitchTa
                     free(arrayAccessNode);
                     return NULL;
                 }
-                if(indexExpr->resultType.kind != IR_DT_INT && 
-                   indexExpr->resultType.kind != IR_DT_CHAR &&
-                   indexExpr->resultType.kind != IR_DT_BOOL &&
-                   indexExpr->resultType.kind != IR_DT_FLOAT) {
+                if (indexExpr->resultType.kind != IR_DT_INT && indexExpr->resultType.kind != IR_DT_CHAR &&
+                    indexExpr->resultType.kind != IR_DT_BOOL && indexExpr->resultType.kind != IR_DT_FLOAT) {
                     setError(ERR_EXP, curr->line, curr->value);  // 索引表达式必须是整数类型
                     *err = 255;
                     free(arrayAccessNode);

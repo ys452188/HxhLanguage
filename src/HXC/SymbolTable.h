@@ -190,7 +190,7 @@ enum NodeKind { NODE_VALUE, NODE_VAR, NODE_UNARY, NODE_BINARY, NODE_FUN_CALL };
 typedef struct ASTNode {
     IR_DataType resultType;
     NodeKind kind;
-    Opcode typeCast;  // 标记：类型转换
+    Opcode typeCast;                   // 标记：类型转换
     struct ASTNode* arrayAccessIndex;  // 数组访问的索引表达式, 为NULL表示不是数组访问
     union {
         struct {

@@ -14,12 +14,13 @@ enum {
     OP_LOAD_CONST,  // 加载常量至栈顶 OP_LOAD_CONST <paramType> <paramValue>
     // |
     // OP_LOAD_CONST <constantIndex>
-    OP_LOAD_VAR,   // 加载变量至栈顶  LOAD_VAR <offest(u32)> <size(u32)(type为压栈后槽位标记的类型))>
+    OP_LOAD_VAR,             // 加载变量至栈顶  LOAD_VAR <offest(u32)> <size(u32)(type为压栈后槽位标记的类型))>
     OP_STORE_ARRAY_ELEMENT,  // 将栈顶值存入数组元素, 索引用栈顶  STORE_ARRAY_ELEMENT <offest(u32)> <size(按u32读>
-    OP_LOAD_ELEMENT_FROM_ARRAY,  // 加载数组元素至栈顶， 索引用栈顶  LOAD_ELEMENT_FROM_ARRAY <offest(u32)> <size(按u32读， type为压栈后槽位标记的类型)> 
+    OP_LOAD_ELEMENT_FROM_ARRAY,  // 加载数组元素至栈顶， 索引用栈顶  LOAD_ELEMENT_FROM_ARRAY <offest(u32)> <size(按u32读，
+                                 // type为压栈后槽位标记的类型)>
     OP_POP,        // 弹出
     OP_STORE_VAR,  // 将栈顶值存入变量  OP_STORE_VAR <offest(u32)>
-    // <copySize(u32)>
+    // <copySize(u32, type表示栈顶应转换的类型)>
 
     OP_ADD,
     OP_SUB,
@@ -55,7 +56,7 @@ enum {
     // 连接字符串
     OP_STRING_CONCAT,
 
-    OP_HEAP_ALLOC,   //OP_HEAP_ALLOC size(u32)：分配内存的地址放栈顶
+    OP_HEAP_ALLOC,  // OP_HEAP_ALLOC size(u32)：分配内存的地址放栈顶
 
 };
 typedef uint8_t ParamType;
@@ -190,111 +191,111 @@ static int writeInstruction(Instruction& inst, FILE* file) {
 #ifdef HX_DEBUG
     fwprintf(logStream, L"写入指令");
     switch (inst.opcode) {
-    case OP_LOAD_CONST: {
-        fwprintf(logStream, L"\33[1;34mOP_LOAD_CONST\33[0m)\n");
-        break;
-    }
-    case OP_PRINT_STRING:
-        fwprintf(logStream, L"\33[1;34mOP_PRINT_STRING\33[0m\n");
-        break;
-    case OP_LOAD_VAR:
-        fwprintf(logStream, L"\33[1;34mOP_LOAD_VAR\33[0m)\n");
-        break;
-    case OP_HEAP_ALLOC:
-        fwprintf(logStream, L"\33[1;34mOP_HEAP_ALLOC\33[0m)\n");
-        break;
-    case OP_STORE_VAR:
-        fwprintf(logStream, L"\33[1;34mOP_STORE_VAR\33[0m)\n");
-        break;
-    case OP_ADD:
-        fwprintf(logStream, L"\33[1;34mOP_ADD\33[0m)\n");
-        break;
-    case OP_SUB:
-        fwprintf(logStream, L"\33[1;34mOP_SUB\33[0m)\n");
-        break;
-    case OP_MUL:
-        fwprintf(logStream, L"\33[1;34mOP_MUL\33[0m)\n");
-        break;
-    case OP_DIV:
-        fwprintf(logStream, L"\33[1;34mOP_DIV\33[0m)\n");
-        break;
-    case OP_CAL:
-        fwprintf(logStream, L"\33[1;34mOP_CAL\33[0m)\n");
-        break;
-    case OP_RET:
-        fwprintf(logStream, L"\33[1;34mOP_RET\33[0m)\n");
-        break;
-    case OP_CHAR_TO_INT:
-        fwprintf(logStream, L"\33[1;34m OP_CHAR_TO_INT\33[0m\n");
-        break;
-    case OP_INT_TO_CHAR:
-        fwprintf(logStream, L"\33[1;34m OP_INT_TO_CHAR\33[0m\n");
-        break;
-    case OP_INT_TO_FLOAT:
-        fwprintf(logStream, L"\33[1;34m OP_INT_TO_FLOAT\33[0m\n");
-        break;
-    case OP_CHAR_TO_FLOAT:
-        fwprintf(logStream, L"\33[1;34m OP_CHAR_TO_FLOAT\33[0m\n");
-        break;
-    case OP_CHAR_TO_STRING:
-        fwprintf(logStream, L"\33[1;34m OP_CHAR_TO_STRING\33[0m\n");
-        break;
-    case OP_FLOAT_TO_INT:
-        fwprintf(logStream, L"\33[1;34m OP_FLOAT_TO_INT\33[0m\n");
-        break;
-    case OP_INT_TO_STRING:
-        fwprintf(logStream, L"\33[1;34m OP_INT_TO_STRING\33[0m\n");
-        break;
-    case OP_POP:
-        fwprintf(logStream, L"\33[1;34m OP_POP\33[0m\n");
-        break;
-    case OP_JMP:
-        fwprintf(logStream, L"\33[1;34m OP_JMP\33[0m\n");
-        break;
-    case OP_JMP_CONDITION:
-        fwprintf(logStream, L"\33[1;34m OP_JMP_CONDITION\33[0m\n");
-        break;
-    case OP_EQU:
-        fwprintf(logStream, L"\33[1;34m OP_EQU\33[0m\n");
-        break;
-    case OP_OR:
-        fwprintf(logStream, L"\33[1;34m OP_OR\33[0m\n");
-        break;
-    case OP_LT:
-        fwprintf(logStream, L"\33[1;34m OP_LT\33[0m\n");
-        break;
-    case OP_GT:
-        fwprintf(logStream, L"\33[1;34m OP_GT\33[0m\n");
-        break;
-    case OP_OR_LOGIC:
-        fwprintf(logStream, L"\33[1;34m OP_OR_LOGIC\33[0m\n");
-        break;
-    case OP_AND:
-        fwprintf(logStream, L"\33[1;34m OP_AMD\33[0m\n");
-        break;
-    case OP_AND_LOGIC:
-        fwprintf(logStream, L"\33[1;34m OP_AMD_LOGIC\33[0m\n");
-        break;
-    case OP_NOT:
-        fwprintf(logStream, L"\33[1;34m OP_NOT\33[0m\n");
-        break;
-    case OP_NOT_LOGIC:
-        fwprintf(logStream, L"\33[1;34m OP_NOT_LOGIC\33[0m\n");
-        break;
-    case OP_INC:
-        fwprintf(logStream, L"\33[1;34m OP_INC\33[0m\n");
-        break;
-    case OP_DEC:
-        fwprintf(logStream, L"\33[1;34m OP_DEC\33[0m\n");
-        break;
-    case OP_STORE_ARRAY_ELEMENT:
-        fwprintf(logStream, L"\33[1;34m OP_STORE_ARRAY_ELEMENT\33[0m\n");
-        break;
-    case OP_LOAD_ELEMENT_FROM_ARRAY:
-        fwprintf(logStream, L"\33[1;34m OP_LOAD_ELEMENT_FROM_ARRAY\33[0m\n");
-        break;    
-    default:
-        fwprintf(logStream, L"\33[1;32mOP_NOP\33[0m)\n");
+        case OP_LOAD_CONST: {
+            fwprintf(logStream, L"\33[1;34mOP_LOAD_CONST\33[0m)\n");
+            break;
+        }
+        case OP_PRINT_STRING:
+            fwprintf(logStream, L"\33[1;34mOP_PRINT_STRING\33[0m\n");
+            break;
+        case OP_LOAD_VAR:
+            fwprintf(logStream, L"\33[1;34mOP_LOAD_VAR\33[0m)\n");
+            break;
+        case OP_HEAP_ALLOC:
+            fwprintf(logStream, L"\33[1;34mOP_HEAP_ALLOC\33[0m)\n");
+            break;
+        case OP_STORE_VAR:
+            fwprintf(logStream, L"\33[1;34mOP_STORE_VAR\33[0m)\n");
+            break;
+        case OP_ADD:
+            fwprintf(logStream, L"\33[1;34mOP_ADD\33[0m)\n");
+            break;
+        case OP_SUB:
+            fwprintf(logStream, L"\33[1;34mOP_SUB\33[0m)\n");
+            break;
+        case OP_MUL:
+            fwprintf(logStream, L"\33[1;34mOP_MUL\33[0m)\n");
+            break;
+        case OP_DIV:
+            fwprintf(logStream, L"\33[1;34mOP_DIV\33[0m)\n");
+            break;
+        case OP_CAL:
+            fwprintf(logStream, L"\33[1;34mOP_CAL\33[0m)\n");
+            break;
+        case OP_RET:
+            fwprintf(logStream, L"\33[1;34mOP_RET\33[0m)\n");
+            break;
+        case OP_CHAR_TO_INT:
+            fwprintf(logStream, L"\33[1;34m OP_CHAR_TO_INT\33[0m\n");
+            break;
+        case OP_INT_TO_CHAR:
+            fwprintf(logStream, L"\33[1;34m OP_INT_TO_CHAR\33[0m\n");
+            break;
+        case OP_INT_TO_FLOAT:
+            fwprintf(logStream, L"\33[1;34m OP_INT_TO_FLOAT\33[0m\n");
+            break;
+        case OP_CHAR_TO_FLOAT:
+            fwprintf(logStream, L"\33[1;34m OP_CHAR_TO_FLOAT\33[0m\n");
+            break;
+        case OP_CHAR_TO_STRING:
+            fwprintf(logStream, L"\33[1;34m OP_CHAR_TO_STRING\33[0m\n");
+            break;
+        case OP_FLOAT_TO_INT:
+            fwprintf(logStream, L"\33[1;34m OP_FLOAT_TO_INT\33[0m\n");
+            break;
+        case OP_INT_TO_STRING:
+            fwprintf(logStream, L"\33[1;34m OP_INT_TO_STRING\33[0m\n");
+            break;
+        case OP_POP:
+            fwprintf(logStream, L"\33[1;34m OP_POP\33[0m\n");
+            break;
+        case OP_JMP:
+            fwprintf(logStream, L"\33[1;34m OP_JMP\33[0m\n");
+            break;
+        case OP_JMP_CONDITION:
+            fwprintf(logStream, L"\33[1;34m OP_JMP_CONDITION\33[0m\n");
+            break;
+        case OP_EQU:
+            fwprintf(logStream, L"\33[1;34m OP_EQU\33[0m\n");
+            break;
+        case OP_OR:
+            fwprintf(logStream, L"\33[1;34m OP_OR\33[0m\n");
+            break;
+        case OP_LT:
+            fwprintf(logStream, L"\33[1;34m OP_LT\33[0m\n");
+            break;
+        case OP_GT:
+            fwprintf(logStream, L"\33[1;34m OP_GT\33[0m\n");
+            break;
+        case OP_OR_LOGIC:
+            fwprintf(logStream, L"\33[1;34m OP_OR_LOGIC\33[0m\n");
+            break;
+        case OP_AND:
+            fwprintf(logStream, L"\33[1;34m OP_AMD\33[0m\n");
+            break;
+        case OP_AND_LOGIC:
+            fwprintf(logStream, L"\33[1;34m OP_AMD_LOGIC\33[0m\n");
+            break;
+        case OP_NOT:
+            fwprintf(logStream, L"\33[1;34m OP_NOT\33[0m\n");
+            break;
+        case OP_NOT_LOGIC:
+            fwprintf(logStream, L"\33[1;34m OP_NOT_LOGIC\33[0m\n");
+            break;
+        case OP_INC:
+            fwprintf(logStream, L"\33[1;34m OP_INC\33[0m\n");
+            break;
+        case OP_DEC:
+            fwprintf(logStream, L"\33[1;34m OP_DEC\33[0m\n");
+            break;
+        case OP_STORE_ARRAY_ELEMENT:
+            fwprintf(logStream, L"\33[1;34m OP_STORE_ARRAY_ELEMENT\33[0m\n");
+            break;
+        case OP_LOAD_ELEMENT_FROM_ARRAY:
+            fwprintf(logStream, L"\33[1;34m OP_LOAD_ELEMENT_FROM_ARRAY\33[0m\n");
+            break;
+        default:
+            fwprintf(logStream, L"\33[1;32mOP_NOP\33[0m)\n");
     }
 #endif
     // 写opcode

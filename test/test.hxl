@@ -2,7 +2,8 @@
     
     var:newArr:float[114];
     var:newVar:float;
-    newVar = newArr[0];
-   
+    newArr[0] = 113;
+    newVar = newArr[0]+1;
+    newArr[newVar - 114] = 514;
     返回：0。  
 }

@@ -1098,13 +1098,34 @@ inline int interpretInstruction(Instruction& inst, OpStack& opStack, char*& stac
             }
             uint32_t size = 0;
             uint32_t offest = 0;
-            memcpy(&size, inst.params[1].value, sizeof(uint32_t));
+            memcpy(&size, &opStack.opStack[opStack.top - 1].size, sizeof(uint32_t));
             memcpy(&offest, inst.params[0].value, sizeof(uint32_t));
 #ifdef HX_DEBUG
             wprintf(LOG_LABEL L"将大小为%u的数据存储至偏移量%u处\n", size, offest);
 #endif
             void* addr = stack + offest;
-            memcpy(addr, opStack.opStack[opStack.top - 1].value, size);
+            if (inst.params[1].type == PARAM_TYPE_ADDRESS) {
+                memcpy(addr, opStack.opStack[opStack.top - 1].value, size);
+            } else if (inst.params[1].type == PARAM_TYPE_BOOL) {
+                memcpy(addr, opStack.opStack[opStack.top - 1].value, sizeof(char));
+            } else if (inst.params[1].type == PARAM_TYPE_CHAR) {
+                wchar_t ch = L'\0';
+                memcpy(&ch, opStack.opStack[opStack.top - 1].value, size);
+                memcpy(addr, &ch, sizeof(wchar_t));
+            } else if (inst.params[1].type == PARAM_TYPE_FLOAT) {
+                double tmp = 0.0;
+                if (opStack.opStack[opStack.top - 1].type == TYPE_INT) {
+                    tmp = (double)*((int32_t*)(opStack.opStack[opStack.top - 1].value));
+                } else {
+                    memcpy(&tmp, opStack.opStack[opStack.top - 1].value, size);
+                }
+                memcpy(addr, &tmp, sizeof(double));
+            } else if (inst.params[1].type == PARAM_TYPE_INT) {
+                int32_t tmp = 0;
+                memcpy(&tmp, opStack.opStack[opStack.top - 1].value, size);
+                memcpy(addr, &tmp, sizeof(int32_t));
+            }
+
             break;
         }
         case OP_LOAD_VAR: {
@@ -1230,6 +1251,102 @@ inline int interpretInstruction(Instruction& inst, OpStack& opStack, char*& stac
 #endif
                 return 0;
             }
+            break;
+        }
+        case OP_HEAP_ALLOC: {
+#ifdef HX_DEBUG
+            wprintf(LOG_LABEL L"分配堆内存\n");
+#endif
+            if (opStack.top >= OP_STACK_SIZE) {
+                fwprintf(errorStream, ERR_LABEL L"人家栈已经被......填满了♡要......坏掉了♡\n");
+                return -1;
+            }
+            uint32_t allocSize = 0U;
+            memcpy(&allocSize, inst.params[0].value, sizeof(uint32_t));
+            void* addr = memoryAllocer.hxMalloc(allocSize);
+            memcpy(opStack.opStack[opStack.top].value, &addr, sizeof(void*));
+            opStack.opStack[opStack.top].type = TYPE_ADDRESS;
+            opStack.opStack[opStack.top].size = sizeof(void*);
+            opStack.top++;
+            break;
+        }
+        case OP_STORE_ARRAY_ELEMENT: {
+#ifdef HX_DEBUG
+            wprintf(LOG_LABEL L"写数组\n");
+#endif
+            if (opStack.top <= 1) {
+                fwprintf(errorStream, ERR_LABEL L"栈中空荡荡的喵，因此不能OP_STORE_ARRAY_ELEMENT喵\n");
+                return -1;
+            }
+            uint32_t size = 0;
+            uint32_t offest = 0;
+            memcpy(&size, inst.params[1].value, sizeof(uint32_t));
+            memcpy(&offest, inst.params[0].value, sizeof(uint32_t));
+            void* arrRefAddr = stack + offest;
+            void* arrAddr = nullptr;
+            memcpy(&arrAddr, arrRefAddr, sizeof(void*));
+            if (arrAddr == nullptr) {
+                fwprintf(errorStream, ERR_LABEL L"欸~引用无效喵~\n");
+                return -1;
+            }
+            uint32_t elementOffest = 0;
+            memcpy(&elementOffest, opStack.opStack[opStack.top - 1].value, sizeof(uint32_t));
+            elementOffest *= size;
+            void* elementAddr = (char*)arrAddr + elementOffest;
+            opStack.top--;
+            memcpy(elementAddr, opStack.opStack[opStack.top - 1].value, size);
+            break;
+        }
+        case OP_LOAD_ELEMENT_FROM_ARRAY: {
+#ifdef HX_DEBUG
+            wprintf(LOG_LABEL L"读数组\n");
+#endif
+            if (opStack.top <= 0) {
+                fwprintf(errorStream, ERR_LABEL L"栈中空荡荡的喵，因此不能OP_LOAD_ELEMENT_FROM_ARRAY喵\n");
+                return -1;
+            }
+            uint32_t size = 0;
+            uint32_t offest = 0;
+            memcpy(&size, inst.params[1].value, sizeof(uint32_t));
+            memcpy(&offest, inst.params[0].value, sizeof(uint32_t));
+            void* arrRefAddr = stack + offest;
+            void* arrAddr = nullptr;
+            memcpy(&arrAddr, arrRefAddr, sizeof(void*));
+            if (arrAddr == nullptr) {
+                fwprintf(errorStream, ERR_LABEL L"欸~引用无效喵~\n");
+                return -1;
+            }
+            uint32_t elementOffest = 0;
+            opStack.top--;
+            memcpy(&elementOffest, opStack.opStack[opStack.top].value, sizeof(uint32_t));
+            elementOffest *= size;
+            void* elementAddr = (char*)arrAddr + elementOffest;
+            memcpy(opStack.opStack[opStack.top].value, elementAddr, size);
+            switch (inst.params[1].type) {
+                case PARAM_TYPE_INT: {
+                    opStack.opStack[opStack.top].type = TYPE_INT;
+                } break;
+                case PARAM_TYPE_FLOAT: {
+                    opStack.opStack[opStack.top].type = TYPE_FLOAT;
+                } break;
+                case PARAM_TYPE_CHAR: {
+                    opStack.opStack[opStack.top].type = TYPE_CHAR;
+                } break;
+                case PARAM_TYPE_BOOL: {
+                    opStack.opStack[opStack.top].type = TYPE_BOOL;
+                } break;
+                case PARAM_TYPE_STRING: {
+                    opStack.opStack[opStack.top].type = TYPE_STRING;
+                } break;
+                case PARAM_TYPE_ADDRESS: {
+                    opStack.opStack[opStack.top].type = TYPE_ADDRESS;
+                } break;
+                default: {
+                    fwprintf(errorStream, ERR_LABEL L"非法指令格式\n");
+                    return -1;
+                } break;
+            }
+            opStack.top++;
             break;
         }
         case OP_NOP: {
