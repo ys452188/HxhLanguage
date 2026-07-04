@@ -307,6 +307,118 @@ static ASTNode* parsePrimary(Token* tokens, int* index, int size, FunCallPitchTa
         }
         if (*index < size - 1) {
             Token* next = &tokens[*index + 1];
+            if (next->type == TOK_OPR_LBRACKET) {  // 数组访问
+                // 解析数组访问
+                ASTNode* arrayAccessNode = (ASTNode*)calloc(1, sizeof(ASTNode));
+                if (!arrayAccessNode) {
+                    *err = -1;
+                    return NULL;
+                }
+                arrayAccessNode->kind = NODE_VAR;
+                arrayAccessNode->data.var.name = wcsdup(curr->value);
+                arrayAccessNode->data.var.index = symIdx;
+                arrayAccessNode->arrayAccessIndex = NULL;
+                (*index)++;  // 跳过变量名
+                (*index)++;  // 跳过左括号
+                int exprStartIndex = *index;
+                int openBrackets = 1;
+                int closeBrackets = 0;
+                while (*index < size && (openBrackets != closeBrackets)) {
+                    if (tokens[*index].type == TOK_OPR_LBRACKET) {
+                        openBrackets++;
+                    } else if (tokens[*index].type == TOK_OPR_RBRACKET) {
+                        closeBrackets++;
+                    }
+                    (*index)++;
+                }
+                if (openBrackets != closeBrackets) {
+                    setError(ERR_EXP, curr->line, curr->value);  // 缺少右括号
+                    *err = 255;
+                    free(arrayAccessNode);
+                    return NULL;
+                }
+                switch(node->resultType.kind) {   // 决定结果类型
+                    case IR_DT_INT:
+                    case IR_DT_FLOAT:
+                    case IR_DT_CHAR:
+                    case IR_DT_STRING:
+                    case IR_DT_VOID:
+                    case IR_DT_CUSTOM:
+                    case IR_DT_BOOL:
+                        setError(ERR_EXP, curr->line, curr->value);
+                        free(arrayAccessNode);
+                        *err = 255;
+                        return NULL;
+                        break;
+                    default:
+                        if(node->resultType.kind == IR_DT_INT_ARR) node->resultType.kind = IR_DT_INT;
+                        else if(node->resultType.kind == IR_DT_FLOAT_ARR) node->resultType.kind = IR_DT_FLOAT;
+                        else if(node->resultType.kind == IR_DT_CHAR_ARR) node->resultType.kind = IR_DT_CHAR;
+                        else if(node->resultType.kind == IR_DT_STRING_ARR) node->resultType.kind = IR_DT_STRING;
+                        else if(node->resultType.kind == IR_DT_BOOL_ARR) node->resultType.kind = IR_DT_BOOL;
+                        else if(node->resultType.kind == IR_DT_CUSTOM_ARR) node->resultType.kind = IR_DT_CUSTOM;
+                        break;
+                }
+
+                // 解析索引表达式
+                ASTNode* indexExpr =
+                    parseExprRec(tokens, &exprStartIndex, *index, pitchTable, table, outsideTable, localeScopeIndex, err, 0);
+                if (*err != 0 || !indexExpr) {
+                    free(arrayAccessNode);
+                    return NULL;
+                }
+                if(indexExpr->resultType.kind != IR_DT_INT && 
+                   indexExpr->resultType.kind != IR_DT_CHAR &&
+                   indexExpr->resultType.kind != IR_DT_BOOL &&
+                   indexExpr->resultType.kind != IR_DT_FLOAT) {
+                    setError(ERR_EXP, curr->line, curr->value);  // 索引表达式必须是整数类型
+                    *err = 255;
+                    free(arrayAccessNode);
+                    freeAST(indexExpr);
+                    return NULL;
+                }
+
+                arrayAccessNode->arrayAccessIndex = indexExpr;
+
+                if (*index >= size) {
+                    setError(ERR_NO_END, curr->line, NULL);
+                    *err = 255;
+                    free(arrayAccessNode);
+                    return NULL;
+                }
+                if (tokens[*index].type == TOK_OPR_SET) {  // sym[val] = exp
+                    if (*index + 1 >= size) {
+                        setError(ERR_EXP, curr->line, curr->value);
+                        *err = 255;
+                        return NULL;
+                    }
+                    (*index)++;  // tokens[*index] == 等号右边
+                    ASTNode* movNode = (ASTNode*)calloc(1, sizeof(ASTNode));
+                    if (!movNode) {
+                        *err = -1;
+                        return NULL;
+                    }
+
+                    movNode->kind = NODE_BINARY;
+                    movNode->data.binary.op = BIN_OPR_SET;
+                    movNode->data.binary.varName = wcsdup(curr->value);
+
+                    movNode->left = arrayAccessNode;  // 左边是数组访问节点
+                    // 连等支持
+                    movNode->right = parseExprRec(tokens, index, size, pitchTable, table, outsideTable, localeScopeIndex, err,
+                                                  getPrec(TOK_OPR_SET));
+
+                    if (*err) {
+                        free(movNode);
+                        return NULL;
+                    }
+                    // 类型推导
+                    movNode->resultType = movNode->right->resultType;
+                    return movNode;
+                }
+
+                return arrayAccessNode;
+            }
             // 函数调用
             if (next->type == TOK_OPR_LQUOTE) {  // id({exp,})
                 if (*index + 2 >= size) {

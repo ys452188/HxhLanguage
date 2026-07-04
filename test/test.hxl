@@ -1,6 +1,8 @@
 函数：主函数（无参数）->{
     
     var:newArr:float[114];
+    var:newVar:float;
+    newVar = newArr[0];
    
     返回：0。  
 }
