@@ -36,6 +36,8 @@ typedef enum ErrorType {
     ERR_IF,
     ERROR_UNCOMPLETED_CLASS,  // 类相互包含
     ERROR_INC_OR_DEC_OP_VAR,  // 非法自增/减操作数
+    ERR_FOR,                    // for语句语法错误
+    ERR_NO_VAR,
 } ErrorType;
 void initLocale(void) noexcept {
     // 设置Locale
@@ -534,6 +536,13 @@ void setError(ErrorType e, int errorLine, const wchar_t* errCode) noexcept {
                      errCode ? errCode : L" ", errorLine);
             break;
         }
+        case ERR_NO_VAR: {
+            swprintf(errorMessageBuffer, ERROR_BUF_SIZE,
+                     L"\33[31m[ERR]这是什么符号喵？（好奇）  "
+                     L"%ls\33[0m(位于第%d行)\n",
+                     errCode ? errCode : L" ", errorLine);
+            break;
+        }
         case ERR_RET_VAL: {
             swprintf(errorMessageBuffer, ERROR_BUF_SIZE, L"\33[31m[ERR]返回值错误了喵\33[0m(位于第%d行)\n", errorLine);
             break;
@@ -578,6 +587,15 @@ void setError(ErrorType e, int errorLine, const wchar_t* errCode) noexcept {
             swprintf(errorMessageBuffer, ERROR_BUF_SIZE,
                      L"\33[31m[ERR]该类型的变量是不支持自增或自减的喵～笨蛋！\33["
                      L"0m(位于第%d行)\n",
+                     errorLine);
+            break;
+        }
+        case ERR_FOR: {
+            swprintf(errorMessageBuffer, ERROR_BUF_SIZE,
+                     L"\33[31m[ERR]for语句语法错误了喵～\33["
+                     L"0m(位于第%d行)\n\33["
+                     L"36m[NOTE]\33[0m for语句 ::= for: id(tmp):id(arr) -> "
+                     L"语句|块\n",
                      errorLine);
             break;
         }

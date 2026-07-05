@@ -4,11 +4,11 @@
 /* #undef LANG_zh_TW_MACRO */
 #define HX_DEBUG_MACRO
 #ifdef HX_DEBUG_MACRO
-#define HX_DEBUG
+    #define HX_DEBUG
 #endif
 
 #ifdef LANG_zh_TW_MACRO
-#define LANG_zh_TW
+    #define LANG_zh_TW
 #endif
 
 #endif
