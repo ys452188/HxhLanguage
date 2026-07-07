@@ -75,7 +75,8 @@ typedef struct Param {
     ParamType type;  // char
     uint8_t size;
     char value[8];
-    uint32_t offest;  // 偏移量
+    int offest = 0;  // 偏移量增加的量
+    int sizeAdd = 0; // 大小增加的量
 } Param;
 // 指令
 typedef struct Instruction {

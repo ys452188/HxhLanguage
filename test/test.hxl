@@ -1,19 +1,8 @@
-函数：主函数（无参数）->{
-    
+函数：主函数（无参数）->{  
     var:newArr:float[114];
-    var:newVar:float;
     newArr[0] = 113;
-    newVar = newArr[0]+1;
-    newArr[newVar - 114] = 514;
-    if:1<1-> {
-        __hx_write_string__ "1<1";
-    } else-> if:1<2-> {
-        __hx_write_string__ "1<2";
-    } else-> {
-        __hx_write_string__ "all";
-    }
     for: tmp:newArr -> {
-        __hx_write_string__ "H";
+        __hx_write_string__ "H\n";
     }
     返回：0。  
 }

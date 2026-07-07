@@ -102,7 +102,7 @@ class Symbol {
     bool isTypeKnown;
     IR_DataType type;
     int size;
-    int offest;  // 在栈中的偏移量
+    int offest;  // 在栈中的偏移量增加的量
     std::vector<int> instIndex;
     int procIndex;
 
@@ -144,10 +144,23 @@ class Symbol {
     }
 };
 
-typedef struct SymbolTable {
+typedef class SymbolTable {
+    public:
     std::vector<IR_Function*> fun;  // 函数表（数组）
     std::vector<Symbol> vars;
     uint32_t var_size;
+    SymbolTable& operator=(SymbolTable other) {
+        std::swap(this->fun, other.fun);
+        std::swap(this->vars, other.vars);
+        std::swap(this->var_size, other.var_size);
+        return *this;
+    }
+    SymbolTable(const SymbolTable& other) {
+        this->fun = other.fun;
+        this->vars = other.vars;
+        this->var_size = other.var_size;
+    }
+    SymbolTable():var_size(0) {}
 } SymbolTable;
 class FunCallPitch {  // 回填CALL指令,被指向
    public:
@@ -156,9 +169,8 @@ class FunCallPitch {  // 回填CALL指令,被指向
     int index;
 };
 class FunCallPitchTable {
+    public:
     std::vector<FunCallPitch*> pitches;
-
-   public:
     FunCallPitch* enter(IR_Function* fun) {
         for (int i = 0; i < pitches.size(); i++) {
             if (pitches.at(i)->fun == fun) return pitches.at(i);

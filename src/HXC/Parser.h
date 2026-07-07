@@ -656,6 +656,7 @@ static ASTNode* parsePrimary(Token* tokens, int* index, int size, FunCallPitchTa
         } else {
             (*index)++;
         }
+        outsideTable.at(varScope).vars.at(symIdx).isUsed = true;
         return node;
     }
 

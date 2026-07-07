@@ -78,7 +78,7 @@ int deduceFunctionReturnTypes(IR_Program* program) {
         // 已经知道类型
         if (fun->isReturnTypeKnown || fun->body_token_count == 0) continue;
         // 简单记录变量
-        SymbolTable tempLocalScope = {};
+        SymbolTable tempLocalScope;
         tempLocalScope.fun = program->functions;
         if (fun->paramCount > 0 && fun->params != NULL) {
 #ifdef HX_DEBUG
