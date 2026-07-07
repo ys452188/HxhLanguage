@@ -596,7 +596,7 @@ void setError(ErrorType e, int errorLine, const wchar_t* errCode) noexcept {
                      L"0m(位于第%d行)\n\33["
                      L"36m[NOTE]\33[0m for语句 ::= for: id(tmp):id(arr) -> "
                      L"语句|块\n",
-                     errorLine);
+                     errorLine);         
             break;
         }
     }

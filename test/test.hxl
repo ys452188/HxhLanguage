@@ -12,5 +12,8 @@
     } else-> {
         __hx_write_string__ "all";
     }
+    for: tmp:newArr -> {
+        __hx_write_string__ "H";
+    }
     返回：0。  
 }

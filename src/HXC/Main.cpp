@@ -145,5 +145,6 @@ int main(int argc, char* argv[]) {
         fwprintf(errorStream, L"\33[31m[ERR]\33[0m内存分配失败！\n");
     } catch (std::exception e) {
         fwprintf(errorStream, L"\33[31m[ERR]\33[0m标准库抛异常力！\n");
+        fwprintf(errorStream, L"\33[31m[ERR]\33[0m异常信息：%hs\n", e.what());
     }
 }
