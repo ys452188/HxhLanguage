@@ -14,12 +14,12 @@ enum {
     OP_LOAD_CONST,  // 加载常量至栈顶 OP_LOAD_CONST <paramType> <paramValue>
     // |
     // OP_LOAD_CONST <constantIndex>
-    OP_LOAD_VAR,             // 加载变量至栈顶  LOAD_VAR <offest(u32)> <size(u32)(type为压栈后槽位标记的类型))>
-    OP_STORE_ARRAY_ELEMENT,  // 将栈顶值存入数组元素, 索引用栈顶  STORE_ARRAY_ELEMENT <offest(u32)> <size(按u32读>
+    OP_LOAD_VAR,                 // 加载变量至栈顶  LOAD_VAR <offest(u32)> <size(u32)(type为压栈后槽位标记的类型))>
+    OP_STORE_ARRAY_ELEMENT,      // 将栈顶值存入数组元素, 索引用栈顶  STORE_ARRAY_ELEMENT <offest(u32)> <size(按u32读>
     OP_LOAD_ELEMENT_FROM_ARRAY,  // 加载数组元素至栈顶， 索引用栈顶  LOAD_ELEMENT_FROM_ARRAY <offest(u32)> <size(按u32读，
                                  // type为压栈后槽位标记的类型)>
-    OP_POP,        // 弹出
-    OP_STORE_VAR,  // 将栈顶值存入变量  OP_STORE_VAR <offest(u32)>
+    OP_POP,                      // 弹出
+    OP_STORE_VAR,                // 将栈顶值存入变量  OP_STORE_VAR <offest(u32)>
     // <copySize(u32)>
 
     OP_ADD,

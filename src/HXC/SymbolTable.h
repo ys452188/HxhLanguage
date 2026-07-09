@@ -145,7 +145,7 @@ class Symbol {
 };
 
 typedef class SymbolTable {
-    public:
+   public:
     std::vector<IR_Function*> fun;  // 函数表（数组）
     std::vector<Symbol> vars;
     uint32_t var_size;
@@ -160,7 +160,7 @@ typedef class SymbolTable {
         this->vars = other.vars;
         this->var_size = other.var_size;
     }
-    SymbolTable():var_size(0) {}
+    SymbolTable() : var_size(0) {}
 } SymbolTable;
 class FunCallPitch {  // 回填CALL指令,被指向
    public:
@@ -169,7 +169,7 @@ class FunCallPitch {  // 回填CALL指令,被指向
     int index;
 };
 class FunCallPitchTable {
-    public:
+   public:
     std::vector<FunCallPitch*> pitches;
     FunCallPitch* enter(IR_Function* fun) {
         for (int i = 0; i < pitches.size(); i++) {

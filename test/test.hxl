@@ -4,5 +4,8 @@
     for: tmp:newArr -> {
         __hx_write_string__ "H\n";
     }
+    遍历：newArr, 中间变量：tmp -> {
+        __hx_write_string__ "X\n";
+    }
     返回：0。  
 }

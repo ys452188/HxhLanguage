@@ -14,12 +14,12 @@ enum {
     OP_LOAD_CONST,  // 加载常量至栈顶 OP_LOAD_CONST <paramType> <paramValue>
     // |
     // OP_LOAD_CONST <constantIndex>
-    OP_LOAD_VAR,             // 加载变量至栈顶  LOAD_VAR <offest(u32)> <size(u32)(type为压栈后槽位标记的类型))>
-    OP_STORE_ARRAY_ELEMENT,  // 将栈顶值存入数组元素, 索引用栈顶  STORE_ARRAY_ELEMENT <offest(u32)> <size(按u32读>
+    OP_LOAD_VAR,                 // 加载变量至栈顶  LOAD_VAR <offest(u32)> <size(u32)(type为压栈后槽位标记的类型))>
+    OP_STORE_ARRAY_ELEMENT,      // 将栈顶值存入数组元素, 索引用栈顶  STORE_ARRAY_ELEMENT <offest(u32)> <size(按u32读>
     OP_LOAD_ELEMENT_FROM_ARRAY,  // 加载数组元素至栈顶， 索引用栈顶  LOAD_ELEMENT_FROM_ARRAY <offest(u32)> <size(按u32读，
                                  // type为压栈后槽位标记的类型)>
-    OP_POP,        // 弹出
-    OP_STORE_VAR,  // 将栈顶值存入变量  OP_STORE_VAR <offest(u32)>
+    OP_POP,                      // 弹出
+    OP_STORE_VAR,                // 将栈顶值存入变量  OP_STORE_VAR <offest(u32)>
     // <copySize(u32, type表示栈顶应转换的类型)>
 
     OP_ADD,
@@ -75,8 +75,8 @@ typedef struct Param {
     ParamType type;  // char
     uint8_t size;
     char value[8];
-    int offest = 0;  // 偏移量增加的量
-    int sizeAdd = 0; // 大小增加的量
+    int offest = 0;   // 偏移量增加的量
+    int sizeAdd = 0;  // 大小增加的量
 } Param;
 // 指令
 typedef struct Instruction {
@@ -337,7 +337,8 @@ static int writeProcedure(Procedure& proc, FILE* file) noexcept {
 int writeObjectCode(FILE* objFile, ObjectCode& obj) noexcept {
     if (!objFile) return -1;
     if (writeHeader(objFile)) return -1;
-    // 写ConstantPoolSize
+    // log(L"%p\n",&obj);
+    //  写ConstantPoolSize
     if (fwrite(&(obj.constantPool.size), sizeof(uint32_t), 1, objFile) != 1) return -1;
     // 写ConstantPool.constants
     for (int i = 0; i < obj.constantPool.size; i++) {

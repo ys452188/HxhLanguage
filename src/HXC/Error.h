@@ -36,7 +36,7 @@ typedef enum ErrorType {
     ERR_IF,
     ERROR_UNCOMPLETED_CLASS,  // 类相互包含
     ERROR_INC_OR_DEC_OP_VAR,  // 非法自增/减操作数
-    ERR_FOR,                    // for语句语法错误
+    ERR_FOR,                  // for语句语法错误
     ERR_NO_VAR,
 } ErrorType;
 void initLocale(void) noexcept {
@@ -596,7 +596,7 @@ void setError(ErrorType e, int errorLine, const wchar_t* errCode) noexcept {
                      L"0m(位于第%d行)\n\33["
                      L"36m[NOTE]\33[0m for语句 ::= for: id(tmp):id(arr) -> "
                      L"语句|块\n",
-                     errorLine);         
+                     errorLine);
             break;
         }
     }

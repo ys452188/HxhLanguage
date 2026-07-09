@@ -139,7 +139,9 @@ extern void printAST(ASTNode* root) {
 }
 #endif
 
-// 解析表达式并生成 AST，exp 为 token 数组，index 为当前解析位置，size 为 token 数量，pitchTable 为函数调用匹配表，table 为当前符号表，outsideTable 为外层作用域符号表，localeScopeIndex 为当前作用域索引，err 为错误码输出，返回解析得到的 AST 根节点。
+// 解析表达式并生成 AST，exp 为 token 数组，index 为当前解析位置，size 为 token 数量，pitchTable 为函数调用匹配表，table
+// 为当前符号表，outsideTable 为外层作用域符号表，localeScopeIndex 为当前作用域索引，err 为错误码输出，返回解析得到的 AST
+// 根节点。
 extern ASTNode* parseExpression(Token* exp, int* index, int size, FunCallPitchTable& pitchTable, SymbolTable* table,
                                 std::vector<SymbolTable>& outsideTable, int localeScopeIndex, int* err) noexcept;
 
@@ -158,7 +160,7 @@ void freeAST(ASTNode* node) noexcept {
 static int getVarIndex(const wchar_t* name, SymbolTable* table) {
     if (name == nullptr || table == nullptr) return -1;
     for (uint32_t i = 0; i < table->vars.size(); i++) {
-        if (wcscmp(table->vars.at(i).name, name) == 0) return i;
+        if (name != nullptr && table->vars.at(i).name != nullptr && wcscmp(table->vars.at(i).name, name) == 0) return i;
     }
     return -1;
 }
@@ -171,10 +173,14 @@ static int getPrec(HxTokenType t) {  // 优先级
     if (t == TOK_OPR_SET || t == TOK_OPR_OR_LOGIC || t == TOK_OPR_AND_LOGIC) return 0;
     return -1;
 }
-// 解析基础表达式（数字、变量、括号、函数调用等），tokens 为 token 数组，index 为当前解析位置，size 为 token 数量，pitchTable 为函数调用匹配表，table 为当前符号表，outsideTable 为外层作用域符号表，localeScopeIndex 为当前作用域索引，err 为错误码输出，返回解析得到的 AST 节点。
+// 解析基础表达式（数字、变量、括号、函数调用等），tokens 为 token 数组，index 为当前解析位置，size 为 token 数量，pitchTable
+// 为函数调用匹配表，table 为当前符号表，outsideTable 为外层作用域符号表，localeScopeIndex 为当前作用域索引，err
+// 为错误码输出，返回解析得到的 AST 节点。
 static ASTNode* parsePrimary(Token* tokens, int* index, int size, FunCallPitchTable& pitchTable, SymbolTable* table,
                              std::vector<SymbolTable>& outsideTable, int localeScopeIndex, int* err) noexcept;
-// 递归解析带优先级的表达式，tokens 为 token 数组，index 为当前解析位置，size 为 token 数量，pitchTable 为函数调用匹配表，table 为当前符号表，outsideTable 为外层作用域符号表，localeScopeIndex 为当前作用域索引，err 为错误码输出，min_prec 为当前最小优先级，返回解析得到的 AST 节点。
+// 递归解析带优先级的表达式，tokens 为 token 数组，index 为当前解析位置，size 为 token 数量，pitchTable 为函数调用匹配表，table
+// 为当前符号表，outsideTable 为外层作用域符号表，localeScopeIndex 为当前作用域索引，err 为错误码输出，min_prec
+// 为当前最小优先级，返回解析得到的 AST 节点。
 static ASTNode* parseExprRec(Token* tokens, int* index, int size, FunCallPitchTable& pitchTable, SymbolTable* table,
                              std::vector<SymbolTable>& outsideTable, int localeScopeIndex, int* err, int min_prec) noexcept;
 
@@ -681,7 +687,9 @@ IR_DataType getResultTypeForBinaryOp(IR_DataType left, IR_DataType right) noexce
         return res;
     }
 }
-// 优先级爬升，按运算符优先级递归构造表达式 AST，tokens 为 token 数组，index 为当前解析位置，size 为 token 数量，pitchTable 为函数调用匹配表，table 为当前符号表，outsideTable 为外层作用域符号表，localeScopeIndex 为当前作用域索引，err 为错误码输出，min_prec 为当前最小优先级，返回表达式 AST 根节点。
+// 优先级爬升，按运算符优先级递归构造表达式 AST，tokens 为 token 数组，index 为当前解析位置，size 为 token 数量，pitchTable
+// 为函数调用匹配表，table 为当前符号表，outsideTable 为外层作用域符号表，localeScopeIndex 为当前作用域索引，err
+// 为错误码输出，min_prec 为当前最小优先级，返回表达式 AST 根节点。
 ASTNode* parseExprRec(Token* tokens, int* index, int size, FunCallPitchTable& pitchTable, SymbolTable* table,
                       std::vector<SymbolTable>& outsideTable, int localeScopeIndex, int* err, int min_prec) noexcept {
     ASTNode* lhs = parsePrimary(tokens, index, size, pitchTable, table, outsideTable, localeScopeIndex, err);
