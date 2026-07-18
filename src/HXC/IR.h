@@ -109,21 +109,13 @@ IR_Program* generateIR(Tokens* tokens, int* err) {
                     freeIRProgram(&program);
                     return NULL;
                 }
-                if (isClassRepeatDefine(cls, program->classes, program->class_count) == 255) {
+                if (isClassRepeatDefine(cls, program->classes) == 255) {
                     // 类重复定义错误已处理
                     freeIRProgram(&program);
                     *err = 255;
                     return NULL;
                 }
-                program->class_count++;
-                program->classes = (IR_Class**)realloc(program->classes, program->class_count * sizeof(IR_Class*));
-                if (!program->classes) {
-                    if (err) *err = -1;
-                    free(cls);
-                    free(program);
-                    return NULL;
-                }
-                program->classes[program->class_count - 1] = cls;
+                program->classes.push_back(cls);
             } else if (wcscmp(tokens->tokens[index].value, L"var") == 0 ||
                        wcscmp(tokens->tokens[index].value, L"定义变量") == 0 ||
                        wcscmp(tokens->tokens[index].value, L"con") == 0) {
@@ -179,7 +171,7 @@ IR_Program* generateIR(Tokens* tokens, int* err) {
         }
     }
     // 设置类大小、检查是否包含
-    for (int i = 0; i < program->class_count; i++) {
+    for (int i = 0; i < program->classes.size(); i++) {
         std::vector<IR_Class*> checkedClasses;
         if (checkEachClass(program->classes[i], program, checkedClasses)) {
             setError(ERROR_UNCOMPLETED_CLASS, program->classes[i]->line, NULL);
@@ -228,8 +220,8 @@ void freeIRProgram(IR_Program** program) {
             }
         }
         // 释放程序中的所有类
-        if ((*program)->classes) {
-            for (int i = 0; i < (*program)->class_count; i++) {
+        if ((*program)->classes.size() != 0) {
+            for (int i = 0; i < (*program)->classes.size(); i++) {
                 IR_Class* cls = (*program)->classes[i];
                 if (cls) {
                     if (cls->name) {
@@ -242,9 +234,9 @@ void freeIRProgram(IR_Program** program) {
                     }
                     // 释放类体成员
                     // 释放公有成员
-                    if (cls->body.publicMembers) {
-                        for (int j = 0; j < cls->body.public_member_count; j++) {
-                            IR_ClassMember member = cls->body.publicMembers[j];
+                    if (cls->body.publicMembers.size() != 0) {
+                        for (int j = 0; j < cls->body.publicMembers.size(); j++) {
+                            IR_ClassMember& member = cls->body.publicMembers[j];
                             if (member.type == IR_CM_VARIABLE) {
                                 if (member.data.variable) {
                                     if (member.data.variable->name) {
@@ -280,13 +272,11 @@ void freeIRProgram(IR_Program** program) {
                                 }
                             }
                         }
-                        free(cls->body.publicMembers);
-                        cls->body.publicMembers = NULL;
                     }
                     // 释放私有成员
-                    if (cls->body.privateMembers) {
-                        for (int j = 0; j < cls->body.private_member_count; j++) {
-                            IR_ClassMember member = cls->body.privateMembers[j];
+                    if (cls->body.privateMembers.size()!=0) {
+                        for (int j = 0; j < cls->body.privateMembers.size(); j++) {
+                            IR_ClassMember& member = cls->body.privateMembers[j];
                             if (member.type == IR_CM_VARIABLE) {
                                 if (member.data.variable) {
                                     if (member.data.variable->name) {
@@ -322,13 +312,11 @@ void freeIRProgram(IR_Program** program) {
                                 }
                             }
                         }
-                        free(cls->body.privateMembers);
-                        cls->body.privateMembers = NULL;
                     }
                 }
-                if (cls->body.protectedMembers) {
-                    for (int j = 0; j < cls->body.protected_member_count; j++) {
-                        IR_ClassMember member = cls->body.protectedMembers[j];
+                if (cls->body.protectedMembers.size()!=0) {
+                    for (int j = 0; j < cls->body.protectedMembers.size(); j++) {
+                        IR_ClassMember& member = cls->body.protectedMembers[j];
                         if (member.type == IR_CM_VARIABLE) {
                             if (member.data.variable) {
                                 if (member.data.variable->name) {
@@ -364,8 +352,6 @@ void freeIRProgram(IR_Program** program) {
                             }
                         }
                     }
-                    free(cls->body.protectedMembers);
-                    cls->body.protectedMembers = NULL;
                 }
             }
         }
@@ -1629,8 +1615,8 @@ void showIRClassInfo(IR_Class* cls) {
     fwprintf(logStream, L"类名: %ls\n", cls->name);
     fwprintf(logStream, L"父类: %ls\n", cls->parent_name ? cls->parent_name : L"无");
     fwprintf(logStream, L"类体信息:\n");
-    fwprintf(logStream, L"\t私有成员个数: %d\n", cls->body.private_member_count);
-    for (int i = 0; i < cls->body.private_member_count; i++) {
+    fwprintf(logStream, L"\t私有成员个数: %d\n", cls->body.privateMembers.size());
+    for (int i = 0; i < cls->body.privateMembers.size(); i++) {
         IR_ClassMember* member = &cls->body.privateMembers[i];
         if (member->type == IR_CM_VARIABLE) {
             fwprintf(logStream, L"\t\t变量: 名字=%ls, 类型=", member->data.variable->name);
@@ -1662,8 +1648,8 @@ void showIRClassInfo(IR_Class* cls) {
             showFunctionInfo(member->data.function);
         }
     }
-    fwprintf(logStream, L"\t公有成员个数: %d\n", cls->body.public_member_count);
-    for (int i = 0; i < cls->body.public_member_count; i++) {
+    fwprintf(logStream, L"\t公有成员个数: %d\n", cls->body.publicMembers.size());
+    for (int i = 0; i < cls->body.publicMembers.size(); i++) {
         IR_ClassMember* member = &cls->body.publicMembers[i];
         if (member->type == IR_CM_VARIABLE) {
             fwprintf(logStream, L"\t\t变量: 名字=%ls, 类型=", member->data.variable->name);
@@ -1695,8 +1681,8 @@ void showIRClassInfo(IR_Class* cls) {
             showFunctionInfo(member->data.function);
         }
     }
-    fwprintf(logStream, L"\t受保护成员个数: %d\n", cls->body.protected_member_count);
-    for (int i = 0; i < cls->body.protected_member_count; i++) {
+    fwprintf(logStream, L"\t受保护成员个数: %d\n", cls->body.protectedMembers.size());
+    for (int i = 0; i < cls->body.protectedMembers.size(); i++) {
         IR_ClassMember* member = &cls->body.protectedMembers[i];
         if (member->type == IR_CM_VARIABLE) {
             fwprintf(logStream, L"\t\t变量: 名字=%ls, 类型=", member->data.variable->name);
@@ -1766,8 +1752,8 @@ void showIRProgramInfo(IR_Program* program) {
         fwprintf(logStream, L"---- 函数%d ----\n", i + 1);
         showFunctionInfo(program->functions[i]);
     }
-    fwprintf(logStream, L"类个数: %d\n", program->class_count);
-    for (int i = 0; i < program->class_count; i++) {
+    fwprintf(logStream, L"类个数: %d\n", program->classes.size());
+    for (int i = 0; i < program->classes.size(); i++) {
         fwprintf(logStream, L"---- 类%d ----\n", i + 1);
         showIRClassInfo(program->classes[i]);
     }
@@ -1785,10 +1771,10 @@ void showIRProgramInfo(IR_Program* program) {
 static IR_ClassBody parseClassBody(Tokens* tokens, int start_index, int end_index, int* err) {
     if (!tokens || err == NULL) {
         if (err) *err = -1;
-        IR_ClassBody body = {0};
+        IR_ClassBody body = {};
         return body;
     }
-    IR_ClassBody body = {0};
+    IR_ClassBody body = {};
     int index = start_index;
     enum { PARSE_PRIVATE_MEMBERS, PARSE_PUBLIC_MEMBERS, PARSE_PROTECTED_MEMBERS } state = PARSE_PUBLIC_MEMBERS;
     // 成员::=[访问修饰符:] 定义函数|定义变量
@@ -1847,35 +1833,20 @@ static IR_ClassBody parseClassBody(Tokens* tokens, int start_index, int end_inde
                 return body;
             }
             if (state == PARSE_PRIVATE_MEMBERS) {
-                body.private_member_count++;
-                body.privateMembers =
-                    (IR_ClassMember*)realloc(body.privateMembers, sizeof(IR_ClassMember) * body.private_member_count);
-                if (!body.privateMembers) {
-                    *err = -1;
-                    return body;
-                }
-                body.privateMembers[body.private_member_count - 1].type = IR_CM_FUNCTION;
-                body.privateMembers[body.private_member_count - 1].data.function = func;
+                IR_ClassMember member = {};
+                    member.type = IR_CM_FUNCTION;
+                    member.data.function = func;
+                body.privateMembers.push_back(member);
             } else if (state == PARSE_PUBLIC_MEMBERS) {
-                body.public_member_count++;
-                body.publicMembers =
-                    (IR_ClassMember*)realloc(body.publicMembers, sizeof(IR_ClassMember) * body.public_member_count);
-                if (!body.publicMembers) {
-                    *err = -1;
-                    return body;
-                }
-                body.publicMembers[body.public_member_count - 1].type = IR_CM_FUNCTION;
-                body.publicMembers[body.public_member_count - 1].data.function = func;
+                IR_ClassMember member = {};
+                    member.type = IR_CM_FUNCTION;
+                    member.data.function = func;
+                body.publicMembers.push_back(member);
             } else if (state == PARSE_PROTECTED_MEMBERS) {
-                body.protected_member_count++;
-                body.protectedMembers =
-                    (IR_ClassMember*)realloc(body.protectedMembers, sizeof(IR_ClassMember) * body.protected_member_count);
-                if (!body.protectedMembers) {
-                    *err = -1;
-                    return body;
-                }
-                body.protectedMembers[body.protected_member_count - 1].type = IR_CM_FUNCTION;
-                body.protectedMembers[body.protected_member_count - 1].data.function = func;
+                IR_ClassMember member = {};
+                    member.type = IR_CM_FUNCTION;
+                    member.data.function = func;
+                body.protectedMembers.push_back(member);
             }
 #ifdef HX_DEBUG
             wchar_t access[4] = {0};
@@ -1895,11 +1866,10 @@ static IR_ClassBody parseClassBody(Tokens* tokens, int start_index, int end_inde
             if (var == NULL || *err != 0) {
                 return body;
             }
-            body.private_member_count++;
-            body.privateMembers =
-                (IR_ClassMember*)realloc(body.privateMembers, sizeof(IR_ClassMember) * body.private_member_count);
-            body.privateMembers[body.private_member_count - 1].type = IR_CM_VARIABLE;
-            body.privateMembers[body.private_member_count - 1].data.variable = var;
+            IR_ClassMember member = {};
+                    member.type = IR_CM_VARIABLE;
+                    member.data.variable = var;
+                body.privateMembers.push_back(member);
 #ifdef HX_DEBUG
             wchar_t access[4] = {0};
             if (state == PARSE_PRIVATE_MEMBERS) {
@@ -2288,7 +2258,7 @@ inline static int getDataSize(IR_DataType type) {
 }
 inline IR_Class* getClassByName(const wchar_t* name, IR_Program* currentIRProgram) {
     if (!name || !currentIRProgram) return NULL;
-    for (int i = 0; i < currentIRProgram->class_count; i++) {
+    for (int i = 0; i < currentIRProgram->classes.size(); i++) {
         if (wcscmp(currentIRProgram->classes[i]->name, name) == 0) {
             return currentIRProgram->classes[i];
         }
@@ -2299,7 +2269,7 @@ inline IR_Class* getClassByName(const wchar_t* name, IR_Program* currentIRProgra
 bool checkEachClass(IR_Class* cls, IR_Program* currentIRProgram, std::vector<IR_Class*> lastClasses) {
     if (!cls) return false;
     lastClasses.push_back(cls);
-    for (int i = 0; i < cls->body.private_member_count; i++) {
+    for (int i = 0; i < cls->body.privateMembers.size(); i++) {
         IR_ClassMember* member = &cls->body.privateMembers[i];
         if (member->type == IR_CM_VARIABLE) {
             if (member->data.variable->type.kind == IR_DT_CUSTOM) {
@@ -2315,7 +2285,7 @@ bool checkEachClass(IR_Class* cls, IR_Program* currentIRProgram, std::vector<IR_
             }
         }
     }
-    for (int i = 0; i < cls->body.public_member_count; i++) {
+    for (int i = 0; i < cls->body.publicMembers.size(); i++) {
         IR_ClassMember* member = &cls->body.publicMembers[i];
         if (member->type == IR_CM_VARIABLE) {
             if (member->data.variable->type.kind == IR_DT_CUSTOM) {
@@ -2331,7 +2301,7 @@ bool checkEachClass(IR_Class* cls, IR_Program* currentIRProgram, std::vector<IR_
             }
         }
     }
-    for (int i = 0; i < cls->body.protected_member_count; i++) {
+    for (int i = 0; i < cls->body.protectedMembers.size(); i++) {
         IR_ClassMember* member = &cls->body.protectedMembers[i];
         if (member->type == IR_CM_VARIABLE) {
             if (member->data.variable->type.kind == IR_DT_CUSTOM) {
@@ -2354,7 +2324,7 @@ inline int getClassSize(IR_Class* cls, IR_Program* currentIRProgram) {
     if (!cls) return 0;
     int size = 0;
     // 计算私有成员变量大小
-    for (int i = 0; i < cls->body.private_member_count; i++) {
+    for (int i = 0; i < cls->body.privateMembers.size(); i++) {
         IR_ClassMember* member = &cls->body.privateMembers[i];
         if (member->type == IR_CM_VARIABLE) {
             if (member->data.variable->type.kind == IR_DT_CUSTOM) {
@@ -2369,7 +2339,7 @@ inline int getClassSize(IR_Class* cls, IR_Program* currentIRProgram) {
         }
     }
     // 计算公有成员变量大小
-    for (int i = 0; i < cls->body.public_member_count; i++) {
+    for (int i = 0; i < cls->body.publicMembers.size(); i++) {
         IR_ClassMember* member = &cls->body.publicMembers[i];
         if (member->type == IR_CM_VARIABLE) {
             if (member->data.variable->type.kind == IR_DT_CUSTOM) {
@@ -2384,7 +2354,7 @@ inline int getClassSize(IR_Class* cls, IR_Program* currentIRProgram) {
         }
     }
     // 计算受保护成员变量大小
-    for (int i = 0; i < cls->body.protected_member_count; i++) {
+    for (int i = 0; i < cls->body.protectedMembers.size(); i++) {
         IR_ClassMember* member = &cls->body.protectedMembers[i];
         if (member->type == IR_CM_VARIABLE) {
             if (member->type == IR_CM_VARIABLE) {

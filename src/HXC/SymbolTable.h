@@ -68,12 +68,9 @@ typedef struct IR_ClassMember {
     IR_ClassMemberData data;
 } IR_ClassMember;
 typedef struct IR_ClassBody {
-    IR_ClassMember* publicMembers;
-    int public_member_count;
-    IR_ClassMember* privateMembers;
-    int private_member_count;
-    IR_ClassMember* protectedMembers;
-    int protected_member_count;
+    std::vector<IR_ClassMember> publicMembers;
+    std::vector<IR_ClassMember> privateMembers;
+    std::vector<IR_ClassMember> protectedMembers;
 } IR_ClassBody;
 typedef struct IR_Class {
     int line;  // 类定义所在行号
@@ -90,13 +87,12 @@ typedef struct IR_Program {
     IR_Variable** global_variables;
     int global_variable_count;
     std::vector<IR_Function*> functions;
-    IR_Class** classes;
-    int class_count;
+    std::vector<IR_Class*> classes;
 } IR_Program;
 
 // 变量处理：存储各变量与其对应的指令，用于回填、标记是否有用
 class Symbol {
-   public:
+public:
     bool isUsed;
     wchar_t* name;
     bool isTypeKnown;
@@ -145,7 +141,7 @@ class Symbol {
 };
 
 typedef class SymbolTable {
-   public:
+public:
     std::vector<IR_Function*> fun;  // 函数表（数组）
     std::vector<Symbol> vars;
     uint32_t var_size;
@@ -163,13 +159,13 @@ typedef class SymbolTable {
     SymbolTable() : var_size(0) {}
 } SymbolTable;
 class FunCallPitch {  // 回填CALL指令,被指向
-   public:
+public:
     FunCallPitch(IR_Function* ir_fun) noexcept : fun(ir_fun), index(-1) {}
     IR_Function* fun;
     int index;
 };
 class FunCallPitchTable {
-   public:
+public:
     std::vector<FunCallPitch*> pitches;
     FunCallPitch* enter(IR_Function* fun) {
         for (int i = 0; i < pitches.size(); i++) {
@@ -236,6 +232,7 @@ typedef struct ASTNode {
             uint32_t arg_count;
         } funCall;
     } data;
+    wchar_t* fromClassName;  //所属的类
     struct ASTNode* left;
     struct ASTNode* right;
     Token* token;  // 用于错误定位

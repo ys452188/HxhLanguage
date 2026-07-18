@@ -38,6 +38,7 @@ typedef enum ErrorType {
     ERROR_INC_OR_DEC_OP_VAR,  // 非法自增/减操作数
     ERR_FOR,                  // for语句语法错误
     ERR_NO_VAR,
+    ERR_CLASS_MEMBER_ACCESS,   //类成员访问
 } ErrorType;
 void initLocale(void) noexcept {
     // 设置Locale
@@ -592,10 +593,18 @@ void setError(ErrorType e, int errorLine, const wchar_t* errCode) noexcept {
         }
         case ERR_FOR: {
             swprintf(errorMessageBuffer, ERROR_BUF_SIZE,
-                     L"\33[31m[ERR]for语句语法错误了喵～\33["
+                     L"\33[31m[ERR]遍历语句语法错误了喵～\33["
                      L"0m(位于第%d行)\n\33["
-                     L"36m[NOTE]\33[0m for语句 ::= for: id(tmp):id(arr) -> "
-                     L"语句|块\n",
+                     L"36m[NOTE]\33[0m 遍历语句 ::= for: id(tmp):id(arr) -> "
+                     L"语句|块\n 或者：\n 遍历语句 ::= 遍历： id(数组)，中间变量：id(中间变量)",
+                     errorLine);
+            break;
+        }
+        case ERR_CLASS_MEMBER_ACCESS: {
+            swprintf(errorMessageBuffer, ERROR_BUF_SIZE,
+                     L"\33[31m[ERR]类成员访问语法喵～笨蛋！\33["
+                     L"0m(位于第%d行)\n"
+                     L"\33[36m[NOTE]\33[0m 变量所属类型无该成员也会报错喵；类成员访问 ::= id(类)：id(成员)\n",
                      errorLine);
             break;
         }

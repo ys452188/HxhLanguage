@@ -55,9 +55,9 @@ int isFunctionRepeatDefine(IR_Function* fun, std::vector<IR_Function*>& table) {
  * 检查类是否重复定义
  * @return 255为重复定义，0为未重复定义
  */
-int isClassRepeatDefine(IR_Class* cls, IR_Class** table, int table_size) {
-    if (!cls || !table) return -1;
-    for (int i = 0; i < table_size; i++) {
+int isClassRepeatDefine(IR_Class* cls, std::vector<IR_Class*>& table) {
+    if (!cls) return -1;
+    for (int i = 0; i < table.size(); i++) {
         if (!table[i]) continue;
         if (wcscmp(cls->name, table[i]->name) == 0) {
             // 类重复定义

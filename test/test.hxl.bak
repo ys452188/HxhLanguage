@@ -8,6 +8,6 @@ cls: Test {
 
 函数：主函数（无参数）->{
     var:newVar:Test;
-    newVar:fun1();
+    newVar:var1 = 114;
     返回：0。  
 }
